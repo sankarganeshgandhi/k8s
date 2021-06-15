@@ -1,0 +1,25 @@
+replicas: 1
+minimumMasterNodes: 1
+rbac:
+  create: true
+
+# Permit co-located instances for solitary minikube virtual machines.
+antiAffinity: "soft"
+
+esJavaOpts: "-Xmx1g -Xms1g"
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "500Mi"
+  limits:
+    cpu: "800m"
+    memory: "1000Mi"
+
+# Request smaller persistent volumes.
+volumeClaimTemplate:
+  accessModes: [ "ReadWriteOnce" ]
+  storageClassName: "local-path"
+  resources:
+    requests:
+      storage: 1Gi

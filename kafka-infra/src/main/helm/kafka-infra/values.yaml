@@ -1,0 +1,101 @@
+# Default values for department-service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+test:
+  enabled: false
+
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+## Additional containers to be added to the controller pod.
+## See https://fluentbit.io/blog/2020/12/03/common-architecture-patterns-with-fluentd-and-fluent-bit/ as example.
+extraContainers: []
+  # - name: fluent-bit
+  #   image: fluent/fluent-bit
+  #   volumeMounts:
+  #   - name: log-storage
+  #     mountPath: /mnt/log/
+  #     readOnly: false
+  #   - name: fluent-bit-config
+  #     mountPath: /fluent-bit/etc/
+  #     readOnly: true
+
+## Containers, which are run before the app containers are started.
+extraInitContainers: []
+  # - name: init-myservice
+  #   image: busybox
+  #   command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
+
+## Additional volumeMounts to the controller main container.
+extraVolumeMounts: []
+  # - name: log-storageq
+  #   mountPath: /mnt/log/
+  #   readOnly: false
+  # - name: fluent-bit-config
+  #   mountPath: /fluent-bit/etc/
+  #   readOnly: true
+
+## Additional volumes to the controller pod.
+## see example fluenbit configmap at https://github.com/StevenACoffman/fluent-bit-tomcat-sidecar/blob/master/fluent-bit-sidecar-config.yaml
+extraVolumes: []
+  # - name: log-storage
+  #   emptyDir: {}
+  # - name: fluent-bit-config
+  #   configMap:
+  #     name: fluent-bit-sidecar-config
+
+extraEnvs: []
+
+# https://quarkus.io/guides/opentracing
+# quarkus.jaeger.agent-host-port
+
+kafka_cluster1:
+  server:
+    enabled: true
+    name: kafka-server1
+
+kafka_cluster2:
+  server:
+    enabled: false
+    name: kafka-server2
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
