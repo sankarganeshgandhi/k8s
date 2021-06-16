@@ -3,8 +3,6 @@ apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
 metadata:
   name: {{ include "kafka_cluster2.kafka-server.name" . }}
-  labels:
-    {{- include "multikafka-infra.labels" . | nindent 4 }}
 spec:
   kafka:
     version: 2.6.0

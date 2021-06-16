@@ -3,8 +3,6 @@ apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
 metadata:
   name: {{ include "kafka_cluster1.kafka-server.name" . }}
-  labels:
-    {{- include "multikafka-infra.labels" . | nindent 4 }}
 spec:
   kafka:
     version: 2.6.0
@@ -28,6 +26,12 @@ spec:
       controlled.shutdown.enable: false
     storage:
       type: ephemeral
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: kafka-metrics
+          key: kafka-metrics-config.yml
   zookeeper:
     replicas: 1
     storage:
@@ -40,7 +44,16 @@ spec:
           value: "false"
         - name: zookeeper.electionPortBindRetry
           value: "100"
+     metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: kafka-metrics
+          key: zookeeper-metrics-config.yml
   entityOperator:
     topicOperator: {}
     userOperator: {}
+  kafkaExporter:
+    topicRegex: ".*"
+    groupRegex: ".*"
 {{- end }}
