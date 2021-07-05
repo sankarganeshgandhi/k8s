@@ -20,7 +20,6 @@ rules:
     verbs: ["get", "list", "watch"]
   - nonResourceURLs: ["/metrics"]
     verbs: ["get"]
-
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -28,7 +27,6 @@ metadata:
   name: prometheus-server
   labels:
     app: strimzi
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -44,7 +42,6 @@ subjects:
   - kind: ServiceAccount
     name: prometheus-server
     namespace: monitoring
-
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
@@ -75,19 +72,3 @@ spec:
   additionalScrapeConfigs:
     name: additional-scrape-configs
     key: prometheus-additional.yaml
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: prometheus
-  labels:
-    app: strimzi
-spec:
-  ports:
-    - name: prometheus
-      port: 9090
-      targetPort: web
-      protocol: TCP
-  selector:
-    name: prometheus
-  type: ClusterIP
