@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.acme</groupId>
   <artifactId>myservice1</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>0.0.1</version>
   <properties>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <maven.compiler.parameters>true</maven.compiler.parameters>
@@ -54,6 +55,11 @@
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.github.project-openubl</groupId>
+      <artifactId>quarkus-bouncycastle</artifactId>
+      <version>1.2.2.Final</version>
     </dependency>
   </dependencies>
   <build>
@@ -113,7 +119,9 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                    <native.image.path>
+                      ${project.build.directory}/${project.build.finalName}-runner
+                    </native.image.path>
                     <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     <maven.home>${maven.home}</maven.home>
                   </systemPropertyVariables>
@@ -125,6 +133,32 @@
       </build>
       <properties>
         <quarkus.package.type>native</quarkus.package.type>
+      </properties>
+    </profile>
+    <profile>
+      <id>cicd</id>
+      <activation>
+        <property>
+          <name>cicd</name>
+        </property>
+      </activation>
+      <properties>
+        <quarkus.package.type>jar</quarkus.package.type>
+        <!--
+        <quarkus.jib.base-jvm-image>devstore.vanderlande.com:6559/fabric8/java-alpine-openjdk11-jre</quarkus.jib.base-jvm-image>
+        <quarkus.jib.base-registry-username>${registry-user}</quarkus.jib.base-registry-username>
+        <quarkus.jib.base-registry-password>${registry-password}</quarkus.jib.base-registry-password>
+        -->
+        <quarkus.container-image.group>local-project</quarkus.container-image.group>
+        <quarkus.container-image.build>true</quarkus.container-image.build>
+        <quarkus.container-image.push>true</quarkus.container-image.push>
+        <quarkus.container-image.registry>${registry-url}</quarkus.container-image.registry>
+        <quarkus.container-image.username>${registry-user}</quarkus.container-image.username>
+        <quarkus.container-image.password>${registry-password}</quarkus.container-image.password>
+        <quarkus.container-image.insecure>true</quarkus.container-image.insecure>
+        <quarkus.container-image.tag>${project.version}-${maven.build.timestamp}</quarkus.container-image.tag>
+        <quarkus.container-image.additional-tags>${project.version}</quarkus.container-image.additional-tags>
+        <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
       </properties>
     </profile>
   </profiles>
