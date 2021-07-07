@@ -1,0 +1,26 @@
+mp:
+  messaging:
+    incoming:
+      in:
+        auto:
+          offset:
+            reset: earliest
+        connector: smallrye-kafka
+        enable:
+          auto:
+            commit: false
+        topic: kafka-topic1
+        value:
+          deserializer: org.acme.model.TransactionDeserializer
+    outgoing:
+      out:
+        connector: smallrye-kafka
+        topic: kafka-topic2
+        value:
+          serializer: io.quarkus.kafka.client.serialization.JsonbSerializer
+      to-kafka:
+        connector: smallrye-kafka
+        topic: kafka-topic1
+        value:
+          serializer: io.quarkus.kafka.client.serialization.JsonbSerializer
+transaction-service/mp-rest/url: http://localhost:8080/transactions

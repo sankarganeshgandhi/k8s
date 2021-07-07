@@ -1,0 +1,27 @@
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: kafka-user1
+  labels:
+    strimzi.io/cluster: kafka-cluster1
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: kafka-topic1
+          patternType: literal
+        operation: Read
+      - resource:
+          type: topic
+          name: kafka-topic1
+          patternType: literal
+        operation: Describe
+      - resource:
+          type: group
+          name: kafka-user-group
+          patternType: literal
+        operation: Read

@@ -1,0 +1,41 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+asciidoctor/
+.asciidoctor/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.gradle
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+*.tgz
+node_modules/
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+/.mvn/wrapper/maven-wrapper.jar
+/.mvn/wrapper/maven-wrapper.properties
+/mvnw
+/mvnw.cmd
+/REPO_PATH/
+/index.pdf
+/images/diag-882720922e8863157bceb75b4ac2b9f8.png
+/images/diag-556cbca90d5fe69152876f03598ea376.png
+/index.html
+/index.pdf
+
+.DS_Store

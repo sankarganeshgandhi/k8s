@@ -6,19 +6,9 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: kafka-cluster
+  name: kafka
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kafka-producer
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kafka-consumer
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: monitoring
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  name: monitoring
