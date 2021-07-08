@@ -7,7 +7,7 @@ helmChartInflationGenerator:
 - chartName: vault
   chartHome: helm-charts
   chartVersion: 0.13.0
-  releaseName: hashicorp/vault
+  releaseName: vault
   values: vault-values.yaml
   chartRepoUrl: https://helm.releases.hashicorp.com
 
