@@ -38,4 +38,7 @@ nbdist/
 /index.html
 /index.pdf
 
+## helm charts dynamically create during kustomize build
+helm-charts/
+
 .DS_Store

@@ -11,17 +11,68 @@ spec:
     type: simple
     acls:
       - resource:
+          type: group
+          name: kafka-user-group
+          patternType: literal
+        operation: Read
+        host: '*'
+      - resource:
           type: topic
           name: kafka-topic1
           patternType: literal
         operation: Read
+        host: '*'
       - resource:
           type: topic
           name: kafka-topic1
           patternType: literal
         operation: Describe
+        host: '*'
       - resource:
-          type: group
-          name: kafka-user-group
+          type: topic
+          name: kafka-topic1
+          patternType: literal
+        operation: Write
+        host: '*'
+      - resource:
+          type: topic
+          name: kafka-topic1
+          patternType: literal
+        operation: Create
+        host: '*'
+      - resource:
+          type: topic
+          name: kafka-topic1
+          patternType: literal
+        operation: Delete
+        host: '*'   
+      - resource:
+          type: topic
+          name: kafka-topic2
           patternType: literal
         operation: Read
+        host: '*'
+      - resource:
+          type: topic
+          name: kafka-topic2
+          patternType: literal
+        operation: Describe
+        host: '*'
+      - resource:
+          type: topic
+          name: kafka-topic2
+          patternType: literal
+        operation: Write
+        host: '*'
+      - resource:
+          type: topic
+          name: kafka-topic2
+          patternType: literal
+        operation: Create
+        host: '*'
+      - resource:
+          type: topic
+          name: kafka-topic2
+          patternType: literal
+        operation: Delete
+        host: '*'
