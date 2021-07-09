@@ -1,15 +1,36 @@
+global:
+  enabled: true
+  tlsDisable: false
+
+injector:
+  enabled: true
+  # Use the Vault K8s Image https://github.com/hashicorp/vault-k8s/
+  image:
+    repository: "hashicorp/vault-k8s"
+    tag: "latest"
+  resources:
+      requests:
+        memory: 256Mi
+        cpu: 250m
+      limits:
+        memory: 256Mi
+        cpu: 250m
+
 server:
   # If not set to true, Vault server will not be installed. See vault.mode in _helpers.tpl for implementation details
   enabled: true
 
-  resources: {}
-  # resources:
-  #   requests:
-  #     memory: 256Mi
-  #     cpu: 250m
-  #   limits:
-  #     memory: 256Mi
-  #     cpu: 250m
+  image:
+      repository: "hashicorp/vault-enterprise"
+      tag: "1.5.0_ent"
+      
+  resources:
+    requests:
+      memory: 500Mi
+      cpu: 500m
+    limits:
+      memory: 1000Mi
+      cpu: 1000m
 
   # Used to define custom readinessProbe settings
   readinessProbe:
@@ -52,6 +73,7 @@ server:
   # Enables a headless service to be used by the Vault Statefulset
   service:
     enabled: true
+
     # clusterIP controls whether a Cluster IP address is attached to the
     # Vault service within Kubernetes.  By default the Vault service will
     # be given a Cluster IP address, set to None to disable.  When disabled
@@ -100,7 +122,7 @@ server:
   # /vault/audit
   # See https://www.vaultproject.io/docs/audit/index.html to know more
   auditStorage:
-    enabled: false
+    enabled: true
     # Size of the PVC created
     size: 5Gi
     # Location where the PVC will be mounted.
@@ -118,7 +140,7 @@ server:
   # the "file" backend.  This mode is not highly available and should not be scaled
   # past a single replica.
   standalone:
-    enabled: "-"
+    enabled: false
 
     # config is a raw string of default configuration when using a Stateful
     # deployment. Default is to use a PersistentVolumeClaim mounted at /vault/data
@@ -217,3 +239,15 @@ server:
     # YAML-formatted multi-line templated string map of the annotations to apply
     # to the statefulSet.
     annotations: {}
+
+# Vault UI
+ui:
+  enabled: true
+  serviceType: "ClusterIP"
+  serviceNodePort: null
+  externalPort: 8200
+
+  # For Added Security, edit the below
+  #loadBalancerSourceRanges:
+  #   - < Your IP RANGE Ex. 10.0.0.0/16 >
+  #   - < YOUR SINGLE IP Ex. 1.78.23.3/32 >
