@@ -127,6 +127,27 @@ data:
     storage "raft" {
       path = "/vault/data"
     }
+    retry_join {
+      leader_api_addr = "https://vault-0.vault-internal:8200"
+      leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
+      leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
+      leader_client_key_file = "/vault/userconfig/tls-server/server.key"
+    }
+    retry_join {
+      leader_api_addr = "https://vault-1.vault-internal:8200"
+      leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
+      leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
+      leader_client_key_file = "/vault/userconfig/tls-server/server.key"
+    }
+
+    autopilot {
+      cleanup_dead_servers = "true"
+      last_contact_threshold = "200ms"
+      last_contact_failure_threshold = "10m"
+      max_trailing_logs = 250000
+      min_quorum = 5
+      server_stabilization_time = "10s"
+    }
     service_registration "kubernetes" {}
 kind: ConfigMap
 metadata:
@@ -150,7 +171,7 @@ metadata:
   namespace: vault
 spec:
   ports:
-  - name: https
+  - name: http
     port: 8200
     targetPort: 8200
   - name: https-internal
@@ -175,7 +196,7 @@ metadata:
   namespace: vault
 spec:
   ports:
-  - name: https
+  - name: http
     port: 8200
     targetPort: 8200
   - name: https-internal
@@ -221,7 +242,7 @@ metadata:
 spec:
   clusterIP: None
   ports:
-  - name: https
+  - name: http
     port: 8200
     targetPort: 8200
   - name: https-internal
@@ -245,7 +266,7 @@ metadata:
   namespace: vault
 spec:
   ports:
-  - name: https
+  - name: http
     port: 8200
     targetPort: 8200
   - name: https-internal
@@ -271,7 +292,7 @@ metadata:
   namespace: vault
 spec:
   ports:
-  - name: https
+  - name: http
     port: 8200
     targetPort: 8200
   publishNotReadyAddresses: true
@@ -324,7 +345,7 @@ spec:
         - name: AGENT_INJECT_LOG_LEVEL
           value: info
         - name: AGENT_INJECT_VAULT_ADDR
-          value: https://vault.default.svc:8200
+          value: http://vault.default.svc:8200
         - name: AGENT_INJECT_VAULT_AUTH_PATH
           value: auth/kubernetes
         - name: AGENT_INJECT_VAULT_IMAGE
@@ -453,9 +474,9 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: VAULT_ADDR
-          value: https://127.0.0.1:8200
+          value: http://127.0.0.1:8200
         - name: VAULT_API_ADDR
-          value: https://$(POD_IP):8200
+          value: http://$(POD_IP):8200
         - name: SKIP_CHOWN
           value: "true"
         - name: SKIP_SETCAP
@@ -466,13 +487,11 @@ spec:
               fieldPath: metadata.name
         - name: VAULT_CLUSTER_ADDR
           value: https://$(HOSTNAME).vault-internal:8201
-        - name: VAULT_RAFT_NODE_ID
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
         - name: HOME
           value: /home/vault
-        image: hashicorp/vault-enterprise:1.5.0_ent
+        - name: VAULT_ADDR
+          value: http://127.0.0.1:8200
+        image: hashicorp/vault:1.7.3
         imagePullPolicy: IfNotPresent
         lifecycle:
           preStop:
@@ -486,7 +505,7 @@ spec:
           httpGet:
             path: /v1/sys/health?standbyok=true
             port: 8200
-            scheme: HTTPS
+            scheme: HTTP
           initialDelaySeconds: 60
           periodSeconds: 5
           successThreshold: 1
@@ -494,11 +513,11 @@ spec:
         name: vault
         ports:
         - containerPort: 8200
-          name: https
+          name: http
         - containerPort: 8201
           name: https-internal
         - containerPort: 8202
-          name: https-rep
+          name: http-rep
         readinessProbe:
           exec:
             command:
@@ -610,8 +629,8 @@ spec:
       exit 0
     env:
     - name: VAULT_ADDR
-      value: https://vault.default.svc:8200
-    image: hashicorp/vault-enterprise:1.5.0_ent
+      value: http://vault.default.svc:8200
+    image: hashicorp/vault:1.7.3
     imagePullPolicy: IfNotPresent
     name: vault-server-test
   restartPolicy: Never
