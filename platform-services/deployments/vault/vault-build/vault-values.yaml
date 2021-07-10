@@ -23,6 +23,8 @@ server:
   image:
       repository: "hashicorp/vault"
       tag: "1.7.3"
+
+  logLevel: "debug"
       
   resources:
     requests:
@@ -102,6 +104,42 @@ server:
     # to the service.
     annotations: {}
 
+  # This configures the Vault Statefulset to create a PVC for data
+  # storage when using the file or raft backend storage engines.
+  # See https://www.vaultproject.io/docs/configuration/storage/index.html to know more
+  dataStorage:
+    enabled: true
+    # Size of the PVC created
+    size: 5Gi
+    # Location where the PVC will be mounted.
+    mountPath: "/vault/data"
+    # Name of the storage class to use.  If null it will use the
+    # configured default Storage Class.
+    storageClass: null
+    # Access Mode of the storage device being used for the PVC
+    accessMode: ReadWriteOnce
+    # Annotations to apply to the PVC
+    annotations: {}
+
+  # This configures the Vault Statefulset to create a PVC for audit
+  # logs.  Once Vault is deployed, initialized and unseal, Vault must
+  # be configured to use this for audit logs.  This will be mounted to
+  # /vault/audit
+  # See https://www.vaultproject.io/docs/audit/index.html to know more
+  auditStorage:
+    enabled: true
+    # Size of the PVC created
+    size: 5Gi
+    # Location where the PVC will be mounted.
+    mountPath: "/vault/audit"
+    # Name of the storage class to use.  If null it will use the
+    # configured default Storage Class.
+    storageClass: null
+    # Access Mode of the storage device being used for the PVC
+    accessMode: ReadWriteOnce
+    # Annotations to apply to the PVC
+    annotations: {}
+
   # Run Vault in "standalone" mode. This is the default mode that will deploy if
   # no arguments are given to helm. This requires a PVC for data storage to use
   # the "file" backend.  This mode is not highly available and should not be scaled
@@ -122,8 +160,52 @@ server:
     # See https://www.vaultproject.io/docs/configuration#api_addr
     # If set to null, this will be set to the Pod IP Address
     apiAddr: null
-    clusterAddr: "http://127.0.0.1:8201"
 
+    # Enables Vault's integrated Raft storage.  Unlike the typical HA modes where
+    # Vault's persistence is external (such as Consul), enabling Raft mode will create
+    # persistent volumes for Vault to store data according to the configuration under server.dataStorage.
+    # The Vault cluster will coordinate leader elections and failovers internally.
+    raft:
+      # Enables Raft integrated storage
+      enabled: false
+      # Set the Node Raft ID to the name of the pod
+      setNodeId: false
+
+      # Note: Configuration files are stored in ConfigMaps so sensitive data
+      # such as passwords should be either mounted through extraSecretEnvironmentVars
+      # or through a Kube secret.  For more information see:
+      # https://www.vaultproject.io/docs/platform/k8s/helm/run#protecting-sensitive-vault-configurations
+      config: |
+        ui = true
+        listener "tcp" {
+          tls_disable = 1
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }
+        storage "raft" {
+          path = "/vault/data"
+        }
+        retry_join {
+          leader_api_addr = "https://vault-0.vault-internal:8200"
+          leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
+          leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
+          leader_client_key_file = "/vault/userconfig/tls-server/server.key"
+        }
+        retry_join {
+          leader_api_addr = "https://vault-1.vault-internal:8200"
+          leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
+          leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
+          leader_client_key_file = "/vault/userconfig/tls-server/server.key"
+        }
+        autopilot {
+          cleanup_dead_servers = "true"
+          last_contact_threshold = "200ms"
+          last_contact_failure_threshold = "10m"
+          max_trailing_logs = 250000
+          min_quorum = 5
+          server_stabilization_time = "10s"
+        }
+        service_registration "kubernetes" {}
     # Note: Configuration files are stored in ConfigMaps so sensitive data
     # such as passwords should be either mounted through extraSecretEnvironmentVars
     # or through a Kube secret.  For more information see:
@@ -135,14 +217,13 @@ server:
         address = "[::]:8200"
         cluster_address = "[::]:8201"
       }
-      
       storage "postgresql" {
-        connection_url="postgres://postgres:postgres@172.20.216.63:5432/vault-db?sslmode=disable"
+        connection_url="postgres://postgres:postgres@172.20.216.63:5432/vaultdb?sslmode=disable"
         table="vault_kv_store",
         ha_enabled=true,
         ha_table="vault_ha_locks" 
       }
-
+      service_registration "kubernetes" {}
     # A disruption budget limits the number of pods of a replicated application
     # that are down simultaneously from voluntary disruptions
     disruptionBudget:

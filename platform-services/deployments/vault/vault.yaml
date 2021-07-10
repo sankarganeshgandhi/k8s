@@ -117,10 +117,10 @@ subjects:
 apiVersion: v1
 data:
   extraconfig-from-values.hcl: "disable_mlock = true\nui = true\nlistener \"tcp\"
-    {\n  tls_disable = 1\n  address = \"[::]:8200\"\n  cluster_address = \"[::]:8201\"\n}\n\nstorage
-    \"postgresql\" {\n  connection_url=\"postgres://postgres:postgres@172.20.216.63:5432/vault-db?sslmode=disable\"\n
+    {\n  tls_disable = 1\n  address = \"[::]:8200\"\n  cluster_address = \"[::]:8201\"\n}\nstorage
+    \"postgresql\" {\n  connection_url=\"postgres://postgres:postgres@172.20.216.63:5432/vaultdb?sslmode=disable\"\n
     \ table=\"vault_kv_store\",\n  ha_enabled=true,\n  ha_table=\"vault_ha_locks\"
-    \n}"
+    \n}\nservice_registration \"kubernetes\" {}"
 kind: ConfigMap
 metadata:
   labels:
@@ -461,6 +461,8 @@ spec:
           value: https://$(HOSTNAME).vault-internal:8201
         - name: HOME
           value: /home/vault
+        - name: VAULT_LOG_LEVEL
+          value: debug
         - name: VAULT_ADDR
           value: http://127.0.0.1:8200
         image: hashicorp/vault:1.7.3
@@ -511,6 +513,8 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
         volumeMounts:
+        - mountPath: /vault/audit
+          name: audit
         - mountPath: /vault/config
           name: config
         - mountPath: /home/vault
@@ -530,7 +534,15 @@ spec:
         name: home
   updateStrategy:
     type: OnDelete
-  volumeClaimTemplates: null
+  volumeClaimTemplates:
+  - metadata:
+      name: audit
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
 ---
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
