@@ -8,8 +8,9 @@ helmChartInflationGenerator:
   chartHome: helm-charts
   chartVersion: 0.13.0
   releaseName: vault
-  values: vault-values.yaml
+  values: vault-values-raft.yaml
+#  values: vault-values-psql.yaml
   chartRepoUrl: https://helm.releases.hashicorp.com
 
-#resources:
-#  - 
+resources:
+  - namespace.yaml

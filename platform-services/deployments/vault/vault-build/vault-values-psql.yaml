@@ -175,41 +175,43 @@ server:
       # such as passwords should be either mounted through extraSecretEnvironmentVars
       # or through a Kube secret.  For more information see:
       # https://www.vaultproject.io/docs/platform/k8s/helm/run#protecting-sensitive-vault-configurations
-      config: |
-        ui = true
-        listener "tcp" {
-          tls_disable = 1
-          address = "[::]:8200"
-          cluster_address = "[::]:8201"
-        }
-        storage "raft" {
-          path = "/vault/data"
-        }
-        retry_join {
-          leader_api_addr = "https://vault-0.vault-internal:8200"
-          leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
-          leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
-          leader_client_key_file = "/vault/userconfig/tls-server/server.key"
-        }
-        retry_join {
-          leader_api_addr = "https://vault-1.vault-internal:8200"
-          leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
-          leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
-          leader_client_key_file = "/vault/userconfig/tls-server/server.key"
-        }
-        autopilot {
-          cleanup_dead_servers = "true"
-          last_contact_threshold = "200ms"
-          last_contact_failure_threshold = "10m"
-          max_trailing_logs = 250000
-          min_quorum = 5
-          server_stabilization_time = "10s"
-        }
-        service_registration "kubernetes" {}
+      # config: |
+      #   ui = true
+      #   listener "tcp" {
+      #     tls_disable = 1
+      #     address = "[::]:8200"
+      #     cluster_address = "[::]:8201"
+      #   }
+      #   storage "raft" {
+      #     path = "/vault/data"
+      #   }
+      #   retry_join {
+      #     leader_api_addr = "https://vault-0.vault-internal:8200"
+      #     leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
+      #     leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
+      #     leader_client_key_file = "/vault/userconfig/tls-server/server.key"
+      #   }
+      #   retry_join {
+      #     leader_api_addr = "https://vault-1.vault-internal:8200"
+      #     leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
+      #     leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
+      #     leader_client_key_file = "/vault/userconfig/tls-server/server.key"
+      #   }
+      #   autopilot {
+      #     cleanup_dead_servers = "true"
+      #     last_contact_threshold = "200ms"
+      #     last_contact_failure_threshold = "10m"
+      #     max_trailing_logs = 250000
+      #     min_quorum = 5
+      #     server_stabilization_time = "10s"
+      #   }
+      #   service_registration "kubernetes" {}
+
     # Note: Configuration files are stored in ConfigMaps so sensitive data
     # such as passwords should be either mounted through extraSecretEnvironmentVars
     # or through a Kube secret.  For more information see:
     # https://www.vaultproject.io/docs/platform/k8s/helm/run#protecting-sensitive-vault-configurations
+
     config: |
       ui = true
       listener "tcp" {
@@ -217,13 +219,15 @@ server:
         address = "[::]:8200"
         cluster_address = "[::]:8201"
       }
+      
       storage "postgresql" {
-        connection_url="postgres://postgres:postgres@10.43.10.71:5432/vaultdb?sslmode=disable"
+        connection_url="postgres://postgres:postgres@10.43.59.100:5432/vaultdb?sslmode=disable"
         table="vault_kv_store",
         ha_enabled=true,
         ha_table="vault_ha_locks" 
       }
       service_registration "kubernetes" {}
+      
     # A disruption budget limits the number of pods of a replicated application
     # that are down simultaneously from voluntary disruptions
     disruptionBudget:
