@@ -8,9 +8,17 @@ helmChartInflationGenerator:
   chartHome: helm-charts
   chartVersion: 0.13.0
   releaseName: vault
-  values: vault-values-raft.yaml
-#  values: vault-values-psql.yaml
+  values: vault-values-psql.yaml
   chartRepoUrl: https://helm.releases.hashicorp.com
+
+configMapGenerator:
+- name: vault-initdb-configmap
+  files:
+  - configs/vault-initdb.sql
+- name: userconfig
+  files:
+    - configs/postgres.hcl
 
 resources:
   - namespace.yaml
+  - vault-postgres-secrets.yaml

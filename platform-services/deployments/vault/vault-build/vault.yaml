@@ -1,8 +1,4 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: vault
----
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -121,6 +117,20 @@ subjects:
 ---
 apiVersion: v1
 data:
+  postgres.hcl: |-
+    storage "postgresql" {
+      connection_url="postgres://postgres:postgres@10.43.138.170:5432/vaultdb?sslmode=disable"
+      table="vault_kv_store",
+      ha_enabled=true,
+      ha_table="vault_ha_locks"
+    }
+kind: ConfigMap
+metadata:
+  name: userconfig-gm6fd89t9c
+  namespace: vault
+---
+apiVersion: v1
+data:
   extraconfig-from-values.hcl: |-
     disable_mlock = true
     ui = true
@@ -129,29 +139,7 @@ data:
       address = "[::]:8200"
       cluster_address = "[::]:8201"
     }
-    storage "raft" {
-      path = "/vault/data"
-    }
-    retry_join {
-      leader_api_addr = "https://vault-0.vault-internal:8200"
-      leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
-      leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
-      leader_client_key_file = "/vault/userconfig/tls-server/server.key"
-    }
-    retry_join {
-      leader_api_addr = "https://vault-1.vault-internal:8200"
-      leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
-      leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
-      leader_client_key_file = "/vault/userconfig/tls-server/server.key"
-    }
-    autopilot {
-      cleanup_dead_servers = "true"
-      last_contact_threshold = "200ms"
-      last_contact_failure_threshold = "10m"
-      max_trailing_logs = 250000
-      min_quorum = 5
-      server_stabilization_time = "10s"
-    }
+
     service_registration "kubernetes" {}
 kind: ConfigMap
 metadata:
@@ -162,6 +150,41 @@ metadata:
     helm.sh/chart: vault-0.13.0
   name: vault-config
   namespace: vault
+---
+apiVersion: v1
+data:
+  vault-initdb.sql: |-
+    CREATE TABLE IF NOT EXISTS vault_kv_store (
+      parent_path TEXT COLLATE "C" NOT NULL,
+      path        TEXT COLLATE "C",
+      key         TEXT COLLATE "C",
+      value       BYTEA,
+      CONSTRAINT pkey PRIMARY KEY (path, key)
+    );
+
+    CREATE INDEX IF NOT EXISTS parent_path_idx ON vault_kv_store (parent_path);
+
+    CREATE TABLE IF NOT EXISTS vault_ha_locks (
+      ha_key                                      TEXT COLLATE "C" NOT NULL,
+      ha_identity                                 TEXT COLLATE "C" NOT NULL,
+      ha_value                                    TEXT COLLATE "C",
+      valid_until                                 TIMESTAMP WITH TIME ZONE NOT NULL,
+      CONSTRAINT ha_key PRIMARY KEY (ha_key)
+    );
+kind: ConfigMap
+metadata:
+  name: vault-initdb-configmap-h6c62964kt
+  namespace: vault
+---
+apiVersion: v1
+data:
+  password: cG9zdGdyZXM=
+  username: cG9zdGdyZXM=
+kind: Secret
+metadata:
+  name: vault-postgres-secret
+  namespace: vault
+type: Opaque
 ---
 apiVersion: v1
 kind: Service
@@ -443,8 +466,8 @@ spec:
           - labelSelector:
               matchLabels:
                 app.kubernetes.io/instance: vault
-                app.kubernetes.io/name: vault
-                component: server
+                app.kubernetes.io/name: vault-agent-injector
+                component: webhook
             topologyKey: kubernetes.io/hostname
       containers:
       - args:
@@ -506,16 +529,6 @@ spec:
               - /bin/sh
               - -c
               - sleep 5 && kill -SIGTERM $(pidof vault)
-        livenessProbe:
-          failureThreshold: 2
-          httpGet:
-            path: /v1/sys/health?standbyok=true
-            port: 8200
-            scheme: HTTP
-          initialDelaySeconds: 60
-          periodSeconds: 5
-          successThreshold: 1
-          timeoutSeconds: 3
         name: vault
         ports:
         - containerPort: 8200
@@ -547,12 +560,68 @@ spec:
         volumeMounts:
         - mountPath: /vault/audit
           name: audit
-        - mountPath: /vault/data
-          name: data
         - mountPath: /vault/config
           name: config
+        - mountPath: /vault/userconfig/vault-storage-config/postgres.hcl
+          name: userconfig
+          readOnly: true
+          subPath: postgres.hcl
         - mountPath: /home/vault
           name: home
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          perl -p -e 's/\$\{([^}]+)\}/defined $ENV{$1} ? $ENV{$1} : ""/eg' /config_in/postgres.hcl > /config_out/postgres.hcl
+        env:
+        - name: PG_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: vault-postgres-secret
+        - name: PG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: vault-postgres-secret
+        - name: PG_DB
+          value: vaultdb
+        - name: PG_SVC
+          value: 10.43.138.170
+        image: perl
+        name: render-postgres
+        volumeMounts:
+        - mountPath: /config_in
+          name: init-vault-config
+        - mountPath: /config_out
+          name: userconfig
+      - command:
+        - psql
+        - -h$(PG_SVC)
+        - -U$(POSTGRES_USER)
+        - -d$(POSTGRES_DB)
+        - -f/init/vault-initdb.sql
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: vault-postgres-secret
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: vault-postgres-secret
+        - name: POSTGRES_DB
+          value: vaultdb
+        - name: PG_SVC
+          value: 10.43.138.170
+        image: postgres
+        name: initdb
+        volumeMounts:
+        - mountPath: /init
+          name: initdb
       securityContext:
         fsGroup: 1000
         runAsGroup: 1000
@@ -564,19 +633,19 @@ spec:
       - configMap:
           name: vault-config
         name: config
+      - configMap:
+          name: vault-initdb-configmap-h6c62964kt
+        name: initdb
+      - configMap:
+          name: userconfig-gm6fd89t9c
+        name: init-vault-config
+      - emptyDir: {}
+        name: userconfig
       - emptyDir: {}
         name: home
   updateStrategy:
     type: OnDelete
   volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 5Gi
   - metadata:
       name: audit
     spec:

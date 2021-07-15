@@ -21,8 +21,8 @@ server:
   enabled: true
 
   image:
-      repository: "hashicorp/vault"
-      tag: "1.7.3"
+    repository: "hashicorp/vault"
+    tag: "1.7.3"
 
   logLevel: "debug"
       
@@ -39,7 +39,7 @@ server:
     enabled: true
     # If you need to use a http path instead of the default exec
     # path: /v1/sys/health?standbyok=true
-
+    #path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
     # When a probe fails, Kubernetes will try failureThreshold times before giving up
     failureThreshold: 2
     # Number of seconds after the container has started before probe initiates
@@ -51,8 +51,9 @@ server:
     # Number of seconds after which the probe times out.
     timeoutSeconds: 3
   # Used to enable a livenessProbe for the pods
+
   livenessProbe:
-    enabled: true
+    enabled: false
     path: "/v1/sys/health?standbyok=true"
     # When a probe fails, Kubernetes will try failureThreshold times before giving up
     failureThreshold: 2
@@ -70,10 +71,94 @@ server:
   # Example:
   # nodeSelector:
   #   beta.kubernetes.io/arch: amd64
-#  nodeSelector: {}
+  #nodeSelector: {}
 
   extraEnvironmentVars:
     VAULT_ADDR: "http://127.0.0.1:8200"
+
+  # Affinity Settings for injector pods
+  # This can either be multi-line string or YAML matching the PodSpec's affinity field.
+  # Commenting out or setting as empty the affinity variable, will allow
+  # deployment of multiple replicas to single node services such as Minikube.
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ template "vault.name" . }}-agent-injector
+              app.kubernetes.io/instance: "{{ .Release.Name }}"
+              component: webhook
+          topologyKey: kubernetes.io/hostname
+
+  volumes:
+    - name: initdb
+      configMap:
+        name: vault-initdb-configmap
+    - name: init-vault-config
+      configMap:
+        name: userconfig
+    - name: userconfig
+      emptyDir: {}
+  volumeMounts:
+    - mountPath: /vault/userconfig/vault-storage-config/postgres.hcl
+      name: userconfig
+      subPath: postgres.hcl
+      readOnly: true
+  extraInitContainers:
+    - name: render-postgres
+      image: "perl"
+      command:
+        - /bin/sh
+        - -c
+        - |
+          perl -p -e 's/\$\{([^}]+)\}/defined $ENV{$1} ? $ENV{$1} : ""/eg' /config_in/postgres.hcl > /config_out/postgres.hcl
+      env:
+        - name: PG_USER
+          valueFrom:
+            secretKeyRef:
+              name: vault-postgres-secret
+              key: username
+        - name: PG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vault-postgres-secret
+              key: password
+        - name: PG_DB
+          value: vaultdb
+        - name: PG_SVC
+          value: 10.43.138.170
+      volumeMounts:
+        - name: init-vault-config
+          mountPath: /config_in
+        - name: userconfig
+          mountPath: /config_out
+    - name: initdb
+      image: "postgres"
+      command: 
+        - psql
+        #- -hvault-postgres
+        - -h$(PG_SVC)
+        - -U$(POSTGRES_USER)
+        - -d$(POSTGRES_DB)
+        - -f/init/vault-initdb.sql
+      env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: vault-postgres-secret
+              key: username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vault-postgres-secret
+              key: password
+        - name: POSTGRES_DB
+          value: vaultdb
+        - name: PG_SVC
+          value: 10.43.138.170
+      volumeMounts:
+        - name: initdb
+          mountPath: /init
 
   # Enables a headless service to be used by the Vault Statefulset
   service:
@@ -170,48 +255,14 @@ server:
       enabled: false
       # Set the Node Raft ID to the name of the pod
       setNodeId: false
-
-      # Note: Configuration files are stored in ConfigMaps so sensitive data
-      # such as passwords should be either mounted through extraSecretEnvironmentVars
-      # or through a Kube secret.  For more information see:
-      # https://www.vaultproject.io/docs/platform/k8s/helm/run#protecting-sensitive-vault-configurations
-      # config: |
-      #   ui = true
-      #   listener "tcp" {
-      #     tls_disable = 1
-      #     address = "[::]:8200"
-      #     cluster_address = "[::]:8201"
-      #   }
-      #   storage "raft" {
-      #     path = "/vault/data"
-      #   }
-      #   retry_join {
-      #     leader_api_addr = "https://vault-0.vault-internal:8200"
-      #     leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
-      #     leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
-      #     leader_client_key_file = "/vault/userconfig/tls-server/server.key"
-      #   }
-      #   retry_join {
-      #     leader_api_addr = "https://vault-1.vault-internal:8200"
-      #     leader_ca_cert_file = "/vault/userconfig/tls-ca/ca.crt"
-      #     leader_client_cert_file = "/vault/userconfig/tls-server/server.crt"
-      #     leader_client_key_file = "/vault/userconfig/tls-server/server.key"
-      #   }
-      #   autopilot {
-      #     cleanup_dead_servers = "true"
-      #     last_contact_threshold = "200ms"
-      #     last_contact_failure_threshold = "10m"
-      #     max_trailing_logs = 250000
-      #     min_quorum = 5
-      #     server_stabilization_time = "10s"
-      #   }
-      #   service_registration "kubernetes" {}
-
+    
     # Note: Configuration files are stored in ConfigMaps so sensitive data
     # such as passwords should be either mounted through extraSecretEnvironmentVars
     # or through a Kube secret.  For more information see:
     # https://www.vaultproject.io/docs/platform/k8s/helm/run#protecting-sensitive-vault-configurations
 
+    ## Storage backend is with PostgreSQL DB which is injected here using config
+    ## from config/postgres.hcl
     config: |
       ui = true
       listener "tcp" {
@@ -219,13 +270,7 @@ server:
         address = "[::]:8200"
         cluster_address = "[::]:8201"
       }
-      
-      storage "postgresql" {
-        connection_url="postgres://postgres:postgres@10.43.59.100:5432/vaultdb?sslmode=disable"
-        table="vault_kv_store",
-        ha_enabled=true,
-        ha_table="vault_ha_locks" 
-      }
+
       service_registration "kubernetes" {}
       
     # A disruption budget limits the number of pods of a replicated application
