@@ -117,30 +117,11 @@ subjects:
 ---
 apiVersion: v1
 data:
-  postgres.hcl: |-
-    storage "postgresql" {
-      connection_url="postgres://postgres:postgres@10.43.138.170:5432/vaultdb?sslmode=disable"
-      table="vault_kv_store",
-      ha_enabled=true,
-      ha_table="vault_ha_locks"
-    }
-kind: ConfigMap
-metadata:
-  name: userconfig-gm6fd89t9c
-  namespace: vault
----
-apiVersion: v1
-data:
-  extraconfig-from-values.hcl: |-
-    disable_mlock = true
-    ui = true
-    listener "tcp" {
-      tls_disable = 1
-      address = "[::]:8200"
-      cluster_address = "[::]:8201"
-    }
-
-    service_registration "kubernetes" {}
+  extraconfig-from-values.hcl: "disable_mlock = true\nui = true\nlistener \"tcp\"
+    {\n  tls_disable = 1\n  address = \"[::]:8200\"\n  cluster_address = \"[::]:8201\"\n}\nstorage
+    \"postgresql\" {\n  connection_url=\"postgres://postgres:postgres@10.43.138.170:5432/vaultdb?sslmode=disable\"\n
+    \ table=\"vault_kv_store\",\n  ha_enabled=true,\n  ha_table=\"vault_ha_locks\"
+    \n}\n\nservice_registration \"kubernetes\" {}"
 kind: ConfigMap
 metadata:
   labels:
@@ -149,31 +130,6 @@ metadata:
     app.kubernetes.io/name: vault
     helm.sh/chart: vault-0.13.0
   name: vault-config
-  namespace: vault
----
-apiVersion: v1
-data:
-  vault-initdb.sql: |-
-    CREATE TABLE IF NOT EXISTS vault_kv_store (
-      parent_path TEXT COLLATE "C" NOT NULL,
-      path        TEXT COLLATE "C",
-      key         TEXT COLLATE "C",
-      value       BYTEA,
-      CONSTRAINT pkey PRIMARY KEY (path, key)
-    );
-
-    CREATE INDEX IF NOT EXISTS parent_path_idx ON vault_kv_store (parent_path);
-
-    CREATE TABLE IF NOT EXISTS vault_ha_locks (
-      ha_key                                      TEXT COLLATE "C" NOT NULL,
-      ha_identity                                 TEXT COLLATE "C" NOT NULL,
-      ha_value                                    TEXT COLLATE "C",
-      valid_until                                 TIMESTAMP WITH TIME ZONE NOT NULL,
-      CONSTRAINT ha_key PRIMARY KEY (ha_key)
-    );
-kind: ConfigMap
-metadata:
-  name: vault-initdb-configmap-h6c62964kt
   namespace: vault
 ---
 apiVersion: v1
@@ -562,66 +518,8 @@ spec:
           name: audit
         - mountPath: /vault/config
           name: config
-        - mountPath: /vault/userconfig/vault-storage-config/postgres.hcl
-          name: userconfig
-          readOnly: true
-          subPath: postgres.hcl
         - mountPath: /home/vault
           name: home
-      initContainers:
-      - command:
-        - /bin/sh
-        - -c
-        - |
-          perl -p -e 's/\$\{([^}]+)\}/defined $ENV{$1} ? $ENV{$1} : ""/eg' /config_in/postgres.hcl > /config_out/postgres.hcl
-        env:
-        - name: PG_USER
-          valueFrom:
-            secretKeyRef:
-              key: username
-              name: vault-postgres-secret
-        - name: PG_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              key: password
-              name: vault-postgres-secret
-        - name: PG_DB
-          value: vaultdb
-        - name: PG_SVC
-          value: 10.43.138.170
-        image: perl
-        name: render-postgres
-        volumeMounts:
-        - mountPath: /config_in
-          name: init-vault-config
-        - mountPath: /config_out
-          name: userconfig
-      - command:
-        - psql
-        - -h$(PG_SVC)
-        - -U$(POSTGRES_USER)
-        - -d$(POSTGRES_DB)
-        - -f/init/vault-initdb.sql
-        env:
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              key: username
-              name: vault-postgres-secret
-        - name: PGPASSWORD
-          valueFrom:
-            secretKeyRef:
-              key: password
-              name: vault-postgres-secret
-        - name: POSTGRES_DB
-          value: vaultdb
-        - name: PG_SVC
-          value: 10.43.138.170
-        image: postgres
-        name: initdb
-        volumeMounts:
-        - mountPath: /init
-          name: initdb
       securityContext:
         fsGroup: 1000
         runAsGroup: 1000
@@ -633,14 +531,6 @@ spec:
       - configMap:
           name: vault-config
         name: config
-      - configMap:
-          name: vault-initdb-configmap-h6c62964kt
-        name: initdb
-      - configMap:
-          name: userconfig-gm6fd89t9c
-        name: init-vault-config
-      - emptyDir: {}
-        name: userconfig
       - emptyDir: {}
         name: home
   updateStrategy:

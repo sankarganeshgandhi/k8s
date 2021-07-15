@@ -11,13 +11,13 @@ helmChartInflationGenerator:
   values: vault-values-psql.yaml
   chartRepoUrl: https://helm.releases.hashicorp.com
 
-configMapGenerator:
-- name: vault-initdb-configmap
-  files:
-  - configs/vault-initdb.sql
-- name: userconfig
-  files:
-    - configs/postgres.hcl
+#configMapGenerator:
+#- name: vault-initdb-configmap
+#  files:
+#  - configs/vault-initdb.sql
+#- name: userconfig
+#  files:
+#    - configs/postgres.hcl
 
 resources:
   - namespace.yaml

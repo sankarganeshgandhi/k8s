@@ -90,76 +90,6 @@ server:
               component: webhook
           topologyKey: kubernetes.io/hostname
 
-  volumes:
-    - name: initdb
-      configMap:
-        name: vault-initdb-configmap
-    - name: init-vault-config
-      configMap:
-        name: userconfig
-    - name: userconfig
-      emptyDir: {}
-  volumeMounts:
-    - mountPath: /vault/userconfig/vault-storage-config/postgres.hcl
-      name: userconfig
-      subPath: postgres.hcl
-      readOnly: true
-  extraInitContainers:
-    - name: render-postgres
-      image: "perl"
-      command:
-        - /bin/sh
-        - -c
-        - |
-          perl -p -e 's/\$\{([^}]+)\}/defined $ENV{$1} ? $ENV{$1} : ""/eg' /config_in/postgres.hcl > /config_out/postgres.hcl
-      env:
-        - name: PG_USER
-          valueFrom:
-            secretKeyRef:
-              name: vault-postgres-secret
-              key: username
-        - name: PG_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: vault-postgres-secret
-              key: password
-        - name: PG_DB
-          value: vaultdb
-        - name: PG_SVC
-          value: 10.43.138.170
-      volumeMounts:
-        - name: init-vault-config
-          mountPath: /config_in
-        - name: userconfig
-          mountPath: /config_out
-    - name: initdb
-      image: "postgres"
-      command: 
-        - psql
-        #- -hvault-postgres
-        - -h$(PG_SVC)
-        - -U$(POSTGRES_USER)
-        - -d$(POSTGRES_DB)
-        - -f/init/vault-initdb.sql
-      env:
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: vault-postgres-secret
-              key: username
-        - name: PGPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: vault-postgres-secret
-              key: password
-        - name: POSTGRES_DB
-          value: vaultdb
-        - name: PG_SVC
-          value: 10.43.138.170
-      volumeMounts:
-        - name: initdb
-          mountPath: /init
-
   # Enables a headless service to be used by the Vault Statefulset
   service:
     enabled: true
@@ -269,6 +199,12 @@ server:
         tls_disable = 1
         address = "[::]:8200"
         cluster_address = "[::]:8201"
+      }
+      storage "postgresql" {
+        connection_url="postgres://postgres:postgres@10.43.138.170:5432/vaultdb?sslmode=disable"
+        table="vault_kv_store",
+        ha_enabled=true,
+        ha_table="vault_ha_locks" 
       }
 
       service_registration "kubernetes" {}
