@@ -119,7 +119,7 @@ apiVersion: v1
 data:
   extraconfig-from-values.hcl: "disable_mlock = true\nui = true\nlistener \"tcp\"
     {\n  tls_disable = 1\n  address = \"[::]:8200\"\n  cluster_address = \"[::]:8201\"\n}\nstorage
-    \"postgresql\" {\n  connection_url=\"postgres://postgres:postgres@10.43.138.170:5432/vaultdb?sslmode=disable\"\n
+    \"postgresql\" {\n  connection_url=\"postgres://postgres:postgres@vault-postgres-postgresql:5432/vaultdb?sslmode=disable\"\n
     \ table=\"vault_kv_store\",\n  ha_enabled=true,\n  ha_table=\"vault_ha_locks\"
     \n}\n\nservice_registration \"kubernetes\" {}"
 kind: ConfigMap
@@ -154,7 +154,7 @@ metadata:
   namespace: vault
 spec:
   ports:
-  - name: http
+  - name: https
     port: 8200
     targetPort: 8200
   - name: https-internal
@@ -179,7 +179,7 @@ metadata:
   namespace: vault
 spec:
   ports:
-  - name: http
+  - name: https
     port: 8200
     targetPort: 8200
   - name: https-internal
@@ -225,7 +225,7 @@ metadata:
 spec:
   clusterIP: None
   ports:
-  - name: http
+  - name: https
     port: 8200
     targetPort: 8200
   - name: https-internal
@@ -249,7 +249,7 @@ metadata:
   namespace: vault
 spec:
   ports:
-  - name: http
+  - name: https
     port: 8200
     targetPort: 8200
   - name: https-internal
@@ -275,7 +275,7 @@ metadata:
   namespace: vault
 spec:
   ports:
-  - name: http
+  - name: https
     port: 8200
     targetPort: 8200
   publishNotReadyAddresses: true
@@ -328,7 +328,7 @@ spec:
         - name: AGENT_INJECT_LOG_LEVEL
           value: info
         - name: AGENT_INJECT_VAULT_ADDR
-          value: http://vault.default.svc:8200
+          value: https://vault.default.svc:8200
         - name: AGENT_INJECT_VAULT_AUTH_PATH
           value: auth/kubernetes
         - name: AGENT_INJECT_VAULT_IMAGE
@@ -351,7 +351,7 @@ spec:
           value: 128Mi
         - name: AGENT_INJECT_DEFAULT_TEMPLATE
           value: map
-        image: hashicorp/vault-k8s:latest
+        image: hashicorp/vault-k8s:0.10.2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 2
@@ -457,9 +457,9 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: VAULT_ADDR
-          value: http://127.0.0.1:8200
+          value: https://127.0.0.1:8200
         - name: VAULT_API_ADDR
-          value: http://$(POD_IP):8200
+          value: https://$(POD_IP):8200
         - name: SKIP_CHOWN
           value: "true"
         - name: SKIP_SETCAP
@@ -485,14 +485,24 @@ spec:
               - /bin/sh
               - -c
               - sleep 5 && kill -SIGTERM $(pidof vault)
+        livenessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /v1/sys/health?standbyok=true
+            port: 8200
+            scheme: HTTPS
+          initialDelaySeconds: 60
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 3
         name: vault
         ports:
         - containerPort: 8200
-          name: http
+          name: https
         - containerPort: 8201
           name: https-internal
         - containerPort: 8202
-          name: http-rep
+          name: https-rep
         readinessProbe:
           exec:
             command:
@@ -594,7 +604,7 @@ spec:
       exit 0
     env:
     - name: VAULT_ADDR
-      value: http://vault.default.svc:8200
+      value: https://vault.default.svc:8200
     image: hashicorp/vault:1.7.3
     imagePullPolicy: IfNotPresent
     name: vault-server-test

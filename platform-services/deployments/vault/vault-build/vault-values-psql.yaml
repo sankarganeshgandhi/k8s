@@ -1,13 +1,13 @@
 global:
   enabled: true
-  tlsDisable: true
+  tlsDisable: false
 
 injector:
   enabled: true
   # Use the Vault K8s Image https://github.com/hashicorp/vault-k8s/
   image:
     repository: "hashicorp/vault-k8s"
-    tag: "latest"
+    tag: "0.10.2"
   resources:
       requests:
         memory: 256Mi
@@ -25,6 +25,7 @@ server:
     tag: "1.7.3"
 
   logLevel: "debug"
+  logFormat: "standard"
       
   resources:
     requests:
@@ -53,7 +54,7 @@ server:
   # Used to enable a livenessProbe for the pods
 
   livenessProbe:
-    enabled: false
+    enabled: true
     path: "/v1/sys/health?standbyok=true"
     # When a probe fails, Kubernetes will try failureThreshold times before giving up
     failureThreshold: 2
@@ -201,7 +202,7 @@ server:
         cluster_address = "[::]:8201"
       }
       storage "postgresql" {
-        connection_url="postgres://postgres:postgres@10.43.138.170:5432/vaultdb?sslmode=disable"
+        connection_url="postgres://postgres:postgres@vault-postgres-postgresql:5432/vaultdb?sslmode=disable"
         table="vault_kv_store",
         ha_enabled=true,
         ha_table="vault_ha_locks" 

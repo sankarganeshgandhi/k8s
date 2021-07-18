@@ -1,26 +1,5 @@
 
-#Kafka Configuration
-kafka:
-  bootstrap:
-    servers: 10.42.1.10:9092
-mp:
-  messaging:
-    outgoing:
-      entitydata-out:
-        connector: smallrye-kafka
-        topic: kafka-topic1
-        value:
-          serializer: io.quarkus.kafka.client.serialization.JsonbSerializer
-    incoming:
-      entitydata-in:
-        connector: smallrye-kafka
-        topic: kafka-topic1
-        auto:
-          offset:
-            reset: earliest
-        enable:
-          auto:
-            commit: false
-        value:
-          deserializer: io.quarkus.kafka.client.serialization.JsonbDeserializer
-transaction-service/mp-rest/url: http://localhost:8080/transactions
+## environment variable
+svc:
+  database:
+    url: "postgres://postgre@postgres-svc:5432/localdb"
