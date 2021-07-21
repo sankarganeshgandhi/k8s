@@ -1,0 +1,52 @@
+openssl genrsa -out injector-ca.key 2048
+
+openssl req \
+   -x509 \
+   -new \
+   -nodes \
+   -key injector-ca.key \
+   -sha256 \
+   -days 1825 \
+   -out injector-ca.crt \
+   -subj "/C=eu/ST=nl/L=veghel/O=vanderlande/CN=vault-agent-injector-svc"
+
+openssl genrsa -out tls.key 2048
+
+openssl req \
+   -new \
+   -key tls.key \
+   -out tls.csr \
+   -subj "/C=eu/ST=nl/L=veghel/O=vanderlande/CN=vault-agent-injector-svc"
+
+cat <<EOF >csr.conf
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = vault-agent-injector-svc
+DNS.2 = vault-agent-injector-svc.vault
+DNS.3 = vault-agent-injector-svc.vault.svc
+DNS.4 = vault-agent-injector-svc.vault.svc.cluster.local
+EOF
+
+openssl x509 \
+  -req \
+  -in tls.csr \
+  -CA injector-ca.crt \
+  -CAkey injector-ca.key \
+  -CAcreateserial \
+  -out tls.crt \
+  -days 1825 \
+  -sha256 \
+  -extfile csr.conf
+
+kubectl create secret generic injector-tls \
+    --from-file ~/temp/vault/tls.crt \
+    --from-file ~/temp/vault/tls.key \
+    --namespace=vault
+
+export CA_BUNDLE=$(cat ~/temp/vault/injector-ca.crt | base64)
+
+use this CA_BUNDLE in the vaules.yaml
