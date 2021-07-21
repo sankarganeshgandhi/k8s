@@ -4,7 +4,7 @@ metadata:
   name: {{ include "myservice1.fullname" . }}
   labels:
     {{- include "myservice1.labels" . | nindent 4 }}
-spec:
+spec:        
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
@@ -18,6 +18,11 @@ spec:
       {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
+        {{- if .Values.vault.enabled }}
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "apps-vault-role"
+        vault.hashicorp.com/agent-inject-secret-apps-myservice1.txt: "apps/myservice1"
+        {{- end }}
       labels:
         {{- include "myservice1.selectorLabels" . | nindent 8 }}
     spec:
@@ -38,14 +43,14 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /health/live
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /health/ready
-              port: http
+          #livenessProbe:
+          #  httpGet:
+          #    path: q/health/live
+          #    port: http
+          #readinessProbe:
+          #  httpGet:
+          #    path: q/health/ready
+          #    port: http
           env:
             - name: QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_NODE
               valueFrom:

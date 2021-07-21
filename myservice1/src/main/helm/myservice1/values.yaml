@@ -24,7 +24,7 @@ serviceAccount:
   annotations: {}
   ## The name of the service account to use.
   ## If not set and create is true, a name is generated using the fullname template
-  name: ""
+  name: "apps-vault-sa"
 
 podAnnotations: {}
 
@@ -44,6 +44,7 @@ service:
   port: 8080
 
 env:
+  #SVC_DATABASE_URL: "postgres://postgre@postgres-svc:5432/helm-localdb" 
 
 ingress:
   enabled: false
@@ -69,6 +70,9 @@ resources:
   requests:
     cpu: 100m
     memory: 128Mi
+
+vault:
+  enabled: true
 
 autoscaling:
   enabled: false

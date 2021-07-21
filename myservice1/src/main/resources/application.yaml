@@ -1,3 +1,10 @@
+quarkus:
+  http:
+    root-path: /
+    non-application-root-path: q
+  smallrye-health:
+    root-path: health
+    liveness-path: liveness
 
 ## environment variable
 svc:
