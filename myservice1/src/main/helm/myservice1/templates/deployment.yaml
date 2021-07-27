@@ -22,6 +22,11 @@ spec:
         vault.hashicorp.com/agent-inject: "true"
         vault.hashicorp.com/role: "apps-vault-role"
         vault.hashicorp.com/agent-inject-secret-apps-myservice1.txt: "apps/myservice1"
+        vault.hashicorp.com/log-level: "debug"
+        #vault.hashicorp.com/ca-cert: "/vault/tls/ca.crt"
+        #vault.hashicorp.com/client-cert: "/vault/tls/client.crt"
+        #vault.hashicorp.com/client-key: "/vault/tls/client.key"
+        #vault.hashicorp.com/tls-secret: "injector-tls"
         {{- end }}
       labels:
         {{- include "myservice1.selectorLabels" . | nindent 8 }}

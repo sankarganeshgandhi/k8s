@@ -1,0 +1,140 @@
+---
+# Source: myservice1/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: apps-vault-sa
+  labels:
+    helm.sh/chart: myservice1-0.0.1
+    app.kubernetes.io/name: myservice1
+    app.kubernetes.io/instance: myservice1
+    app.kubernetes.io/component: myservice1
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: myservice1/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myservice1-config
+  labels:
+    helm.sh/chart: myservice1-0.0.1
+    app.kubernetes.io/name: myservice1
+    app.kubernetes.io/instance: myservice1
+    app.kubernetes.io/component: myservice1
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+data:
+---
+# Source: myservice1/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice1
+  labels:
+    helm.sh/chart: myservice1-0.0.1
+    app.kubernetes.io/name: myservice1
+    app.kubernetes.io/instance: myservice1
+    app.kubernetes.io/component: myservice1
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: myservice1
+    app.kubernetes.io/instance: myservice1
+    app.kubernetes.io/component: myservice1
+---
+# Source: myservice1/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myservice1
+  labels:
+    helm.sh/chart: myservice1-0.0.1
+    app.kubernetes.io/name: myservice1
+    app.kubernetes.io/instance: myservice1
+    app.kubernetes.io/component: myservice1
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: myservice1
+      app.kubernetes.io/instance: myservice1
+      app.kubernetes.io/component: myservice1
+  template:
+    metadata:
+      annotations:
+        checksum/config: 40b3bcb7c52269d746b066c1631f4417a9f6d68fadbaa857c02d915ea88f210c
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "apps-vault-role"
+        vault.hashicorp.com/agent-inject-secret-apps-myservice1.txt: "apps/myservice1"
+        vault.hashicorp.com/log-level: "debug"
+      labels:
+        app.kubernetes.io/name: myservice1
+        app.kubernetes.io/instance: myservice1
+        app.kubernetes.io/component: myservice1
+    spec:
+      serviceAccountName: apps-vault-sa
+      securityContext:
+        {}
+      containers:
+        - name: myservice1
+          securityContext:
+            {}
+          image: "k3d-local-ag:45454:0.0.1"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          #livenessProbe:
+          #  httpGet:
+          #    path: q/health/live
+          #    port: http
+          #readinessProbe:
+          #  httpGet:
+          #    path: q/health/ready
+          #    port: http
+          env:
+            - name: QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_NODE
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_POD
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_CONTAINER
+              value: myservice1      
+            - name: QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_NODE
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_POD
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_CONTAINER
+              value: myservice1      
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          envFrom:
+          - configMapRef:
+              name: myservice1-config
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi

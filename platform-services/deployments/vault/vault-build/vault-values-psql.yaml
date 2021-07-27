@@ -23,11 +23,23 @@ injector:
   metrics:
     enabled: true
   certs:
-    secretName: injector-tls
-## cat ~/temp/vault/injector-ca.crt | base64 | tr -d '\n' > caBundle.txt
-    caBundle: xyxyxyxyx
+    secretName: vault-tls
+    ## cat ~/temp/vault/vault.crt | base64 | tr -d '\n' > caBundle.txt
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJlRENDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUyTWpjd01qYzBNak13SGhjTk1qRXdOekl6TURnd016UXpXaGNOTXpFd056SXhNRGd3TXpRegpXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUyTWpjd01qYzBNak13V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFUMlUxKzVYaHc3cHRZVTVsSmV4eTRES3ZSa2JOSko1NDRjQTh6VGVyL0wKRkNWTmIzbGNNamdZYnZsWnRKK083MWVvSmdYMDFmV1dLbTJYTXJZQURWZTVvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVW5hNGthaGN1ak5FcjhoaTl1RGkvCll3NVRBbGt3Q2dZSUtvWkl6ajBFQXdJRFNRQXdSZ0loQUlySmFxZzNQdnByZkpYN0o5ODhqMUNHblVZMS9vS3QKRGx2SzVPaWxhcjdCQWlFQWlvZzVKc1hUL24rdVgwcTc4OGw4amF2ZnNxczBsSnJQTzR1cllzdkE1ejg9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    certName: vault.crt
+    keyName: vault.key
   extraEnvironmentVars:
     AGENT_INJECT_VAULT_ADDR: "https://vault.vault.svc:8200"
+  # namespaceSelector is the selector for restricting the webhook to only
+  # specific namespaces.
+  # See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-namespaceselector
+  # for more details.
+  # Example:
+  # namespaceSelector:
+  #    matchLabels:
+  #      sidecar-injector: enabled
+  namespaceSelector: {}
+
 
 server:
   # If not set to true, Vault server will not be installed. See vault.mode in _helpers.tpl for implementation details
@@ -88,7 +100,14 @@ server:
   #nodeSelector: {}
 
   extraEnvironmentVars:
-    VAULT_ADDR: "http://127.0.0.1:8200"
+    #VAULT_ADDR: "http://127.0.0.1:8200"
+    VAULT_ADDR: "http://$(HOSTNAME).vault-internal.vault.svc:8200"
+    VAULT_CACERT: /vault/userconfig/vault-tls/vault.ca
+  
+  extraVolumes:
+    - type: secret
+      name: vault-tls # Matches the ssl certif generated
+      path: /vault/userconfig
 
   # Affinity Settings for injector pods
   # This can either be multi-line string or YAML matching the PodSpec's affinity field.
@@ -213,9 +232,12 @@ server:
         tls_disable = 1
         address = "[::]:8200"
         cluster_address = "[::]:8201"
+        tls_cert_file = "/vault/userconfig/vault-tls/vault.crt"
+        tls_key_file  = "/vault/userconfig/vault-tls/vault.key"
+        tls_client_ca_file = "/vault/userconfig/vault-tls/vault.ca"
       }
       storage "postgresql" {
-        connection_url="postgres://postgres:postgres@vault-postgres-postgresql.psql.svc:5432/vaultdb?sslmode=disable"
+        connection_url="postgres://postgres:postgres@vault-postgres-postgresql.pgsql.svc:5432/vaultdb?sslmode=disable"
         table="vault_kv_store",
         ha_enabled=true,
         ha_table="vault_ha_locks" 

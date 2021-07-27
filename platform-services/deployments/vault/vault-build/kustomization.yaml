@@ -21,6 +21,6 @@ helmChartInflationGenerator:
 
 resources:
   - namespace.yaml
-  - integration/injector-secret.yaml
+  - integration/vault-secret.yaml
+  - integration/vault-csr.yaml
   - vault-postgres-secrets.yaml
-  - integration/vault-clusterrolebinding.yaml
