@@ -9,6 +9,5 @@ roleRef:
   name: system:auth-delegator
 subjects:
   - kind: ServiceAccount
-    #name: vault-auth
-    name: apps-vault-sa
+    name: vault-sa
     namespace: vault

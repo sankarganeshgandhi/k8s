@@ -37,6 +37,9 @@ fi
 if [ "$VAULT_INIT" = "init" ]; then
   kubectl --kubeconfig $CONFIG_FILE -n $NAMESPACE exec vault-0 -- vault operator init -key-shares=1 -key-threshold=1 -format=json > $KEYS_FILE_NAME
 fi
-VAULT_UNSEAL_KEY=$(cat $KEYS_FILE_NAME | jq -r ".unseal_keys_b64[]")
-kubectl --kubeconfig $CONFIG_FILE -n $NAMESPACE exec vault-0 -- vault operator unseal $VAULT_UNSEAL_KEY
-kubectl --kubeconfig $CONFIG_FILE -n $NAMESPACE exec vault-1 -- vault operator unseal $VAULT_UNSEAL_KEY
+
+if [ "$VAULT_INIT" = "unseal" ] || [ "$VAULT_INIT" = "init" ]; then
+  VAULT_UNSEAL_KEY=$(cat $KEYS_FILE_NAME | jq -r ".unseal_keys_b64[]")
+  kubectl --kubeconfig $CONFIG_FILE -n $NAMESPACE exec vault-0 -- vault operator unseal $VAULT_UNSEAL_KEY
+  kubectl --kubeconfig $CONFIG_FILE -n $NAMESPACE exec vault-1 -- vault operator unseal $VAULT_UNSEAL_KEY
+fi

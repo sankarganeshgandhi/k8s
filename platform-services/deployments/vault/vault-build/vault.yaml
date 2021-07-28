@@ -1,0 +1,661 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault
+  namespace: vault
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault-agent-injector
+  name: vault-agent-injector
+  namespace: vault
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault-discovery-role
+  namespace: vault
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - watch
+  - list
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault-agent-injector
+  name: vault-agent-injector-clusterrole
+rules:
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault-discovery-rolebinding
+  namespace: vault
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vault-discovery-role
+subjects:
+- kind: ServiceAccount
+  name: vault
+  namespace: vault
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault-agent-injector
+  name: vault-agent-injector-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: vault-agent-injector-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: vault-agent-injector
+  namespace: vault
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault-server-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: vault
+  namespace: vault
+---
+apiVersion: v1
+data:
+  extraconfig-from-values.hcl: "disable_mlock = true\nui = true\nlistener \"tcp\"
+    {\n  tls_disable = 1\n  address = \"[::]:8200\"\n  cluster_address = \"[::]:8201\"\n
+    \ tls_cert_file = \"/vault/userconfig/injector-tls/tls.crt\"\n  tls_key_file  =
+    \"/vault/userconfig/injector-tls/tls.key\"\n}\nstorage \"postgresql\" {\n  connection_url=\"postgres://postgres:postgres@vault-postgres-postgresql.pgsql.svc:5432/vaultdb?sslmode=disable\"\n
+    \ table=\"vault_kv_store\",\n  ha_enabled=true,\n  ha_table=\"vault_ha_locks\"
+    \n}\nservice_registration \"kubernetes\" {}\n# Example configuration for using
+    auto-unseal, using Google Cloud KMS. The\n# GKMS keys must already exist, and
+    the cluster must have a service account\n# that is authorized to access GCP KMS.\n#seal
+    \"gcpckms\" {\n#   project     = \"vault-helm-dev-246514\"\n#   region      =
+    \"global\"\n#   key_ring    = \"vault-helm-unseal-kr\"\n#   crypto_key  = \"vault-helm-unseal-key\"\n#}"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault-config
+  namespace: vault
+---
+apiVersion: v1
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVSekNDQXkrZ0F3SUJBZ0lVT2ZtK3BFRnVZeHdwQVl0SGxpMHZ1Ump3bGhzd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2J6RUxNQWtHQTFVRUJoTUNUa3d4RmpBVUJnTlZCQWdNRFU1dmIzSmtMVUp5WVdKaGJuUXhFakFRQmdOVgpCQWNNQ1VWcGJtUm9iM1psYmpFUk1BOEdBMVVFQ2d3SVVHVnljMjl1WVd3eElUQWZCZ05WQkFNTUdIWmhkV3gwCkxXRm5aVzUwTFdsdWFtVmpkRzl5TFhOMll6QWVGdzB5TVRBM01qZ3hOVFF6TXpCYUZ3MHlOakEzTWpjeE5UUXoKTXpCYU1HOHhDekFKQmdOVkJBWVRBazVNTVJZd0ZBWURWUVFJREExT2IyOXlaQzFDY21GaVlXNTBNUkl3RUFZRApWUVFIREFsRmFXNWthRzkyWlc0eEVUQVBCZ05WQkFvTUNGQmxjbk52Ym1Gc01TRXdId1lEVlFRRERCaDJZWFZzCmRDMWhaMlZ1ZEMxcGJtcGxZM1J2Y2kxemRtTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUsKQW9JQkFRQ3MzMjJXVVd1TVpqU2FBaVp2dDI3YkhXK0w3MDRiOU4rdnk2ZmhNRFUrRUtXRXhDUlpoNEU2U3NyLwoxdkYreGl2T0lzS0Y2UmIvcVJJVDNNR2oxRFd2OHN3QUVzWkFTaldOUVJGUEJ4a2F4WWNBZ0F6NExPWFQvRm55CmhNMGxLeWN2dGR1UkYzMEc5UVJvUEVLSGpkS05kTjFGcXJjQ1gzeWNNcHJxZE9teTc1NE4wamsraEptS1NaSUkKdllkbXFnQy8zVjFUc0g2aDZmMkRFRTBZcWY4OXpUN0VhMlRrcVEyZEdLbzMrZkVKRndHRFp0Z1VKUTJNQnpsUwpHRks1QnNRYWkycTFjSS9qZ1NLQU5RMU53eWdhd1Q4ZkRVRWU4dGo0dEM0aitVTnczc04xaEJUOUtHeUpEeU9VClRFSUNiQjU3R2lpL05JZHBQUzUxV3ZRZGlZQ05BZ01CQUFHamdkb3dnZGN3SHdZRFZSMGpCQmd3Rm9BVW1hUWEKWHZ1MDlCaThSYlZmTHVlK25nRFhhejB3Q1FZRFZSMFRCQUl3QURBTEJnTlZIUThFQkFNQ0JQQXdnWnNHQTFVZApFUVNCa3pDQmtJSVlkbUYxYkhRdFlXZGxiblF0YVc1cVpXTjBiM0l0YzNaamdoNTJZWFZzZEMxaFoyVnVkQzFwCmJtcGxZM1J2Y2kxemRtTXVkbUYxYkhTQ0luWmhkV3gwTFdGblpXNTBMV2x1YW1WamRHOXlMWE4yWXk1MllYVnMKZEM1emRtT0NNSFpoZFd4MExXRm5aVzUwTFdsdWFtVmpkRzl5TFhOMll5NTJZWFZzZEM1emRtTXVZMngxYzNSbApjaTVzYjJOaGJEQU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUFOWE5jVUY5SXNtUG9lWmZmam1WVU1rSTJTZGNZCmhUNlZtQkZiTHpZaG9VL1lhcFA3cWd5dDlTd0Uzem9ZdnpTMEZwM2F4bnN4QlhaZUxOaGsxNXVqeStHVG92UVcKZXVYS2NCTWZqQUx2aVVwd2ZxZCt3dGt3NE9IZnpvaXhiSG4yMjJ5NU56cFp3WFIxc0JlN2tHaE9VN1EzdUU3bQpmTGRDODBaVFJuTnB6SnF0RTE0UlMzYXp3ZXhnY3FlMU5FU0h0VTVJYU5lc2FmVnIweXFhbnpBdE1HWHc5NlE3CkNlaW9vYVovRmM1NVM1bHhrVVJjUVcrSFNyYlJlZVlnNEplbENZSVQyUkt1YXlqSWFXQlZuczBObTJCUy9yM3cKclZQVllacUkzck5hYWlqQ3o5Zml5cnJrQVZNeGRiVGRmb1VJc04zU3Q4YjdQNGVuOVk0elRjczBFdz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBck45dGxsRnJqR1kwbWdJbWI3ZHUyeDF2aSs5T0cvVGZyOHVuNFRBMVBoQ2xoTVFrCldZZUJPa3JLLzlieGZzWXJ6aUxDaGVrVy82a1NFOXpCbzlRMXIvTE1BQkxHUUVvMWpVRVJUd2NaR3NXSEFJQU0KK0N6bDAveFo4b1ROSlNzbkw3WGJrUmQ5QnZVRWFEeENoNDNTalhUZFJhcTNBbDk4bkRLYTZuVHBzdStlRGRJNQpQb1NaaWttU0NMMkhacW9BdjkxZFU3QitvZW45Z3hCTkdLbi9QYzAreEd0azVLa05uUmlxTi9ueENSY0JnMmJZCkZDVU5qQWM1VWhoU3VRYkVHb3RxdFhDUDQ0RWlnRFVOVGNNb0dzRS9IdzFCSHZMWStMUXVJL2xEY043RGRZUVUKL1Noc2lROGpsRXhDQW13ZWV4b292elNIYVQwdWRWcjBIWW1BalFJREFRQUJBb0lCQUN6QlgzYkdONGpPd1JtSwpLdmRMVHlqdE12N1FnckZjTVRrckNaaVVTWVI2L004bGxKK1ZKRkM2SWxvZ0JMK2tnSnpLaFAvME81OE8zMzVDCjdlTURRcTc5dGZEaTYyNmpoNys5TThUNCtuZmk0Yk93Y3lzaFBKTW9Sd1V4ZW9iLzZCSkRDOGhCZzMzMG15SjkKVDJBV3lJY1UxV0IrOVFocFBqS1dLMk05eDI4cWl4dE81TFRLU2h3ekJzWXBJM09wZzdLVDNBQjlxUFQ1Ymh5dQprMHNPU3AvMXdmcXlYUHVmNCs0dmJGeFpLSHh4Ylo5YUMzU08wbU1kZlBqQURvTHBTY04xdVp0cmtYMGdpOUJICit6T082OXQwUHNLdUZKTjZnN080Umg1QXdOVWFHSlc2cFBtWmVtYk1rdXk4QkhITnd5NHBRTGVkWHB6U3QrWWoKbjYwdlJtRUNnWUVBMURScHlOa2hrMlVsSmNKcldKSHlaRDc4NEphVWY1VjIvTUkwYlZ3MGtiZW9rZnJTeEVnRworTms1cTJoRlE4dTFsM0Z4UmxrTXM5bGROV2NQSEVmZHMza0FQK1pHdTc3eUFHNzU1dVNoVnBNSDRBSnI2ajVtCnpCNGpHOXArdWtYSDN0R2FMU084d0VlZ0REZUNWS0RlSFZZODlLZFNtK1c0N0hEeFYvTXVMQ2tDZ1lFQTBJejAKM1NmcS9BZFhXSUdtR0FGd1hCNzk3allMc2NIN3lsdm90dDQza2taY0s0RjBhN2FPY1c5bkNXQmd1cDBsWkpENQoyM0U0TThSd2xyRVJLUCsvQUIwRWNjZ1J2OXFZdnI2djVRSzZMQVhqck9SbU5JYzFnSWZpV29HQXRKL1A2SVZFCktzNkJTMHVTMHZhZ3gzOWRuZnh2dmJiR0syVFdadGwyd1NvVi9jVUNnWUVBcUkrQnYvTUtBcVVEWHYwU2UrWmkKbmxLU1dHd0VSVndhaWloUnNOVGZSU2lZRkcwaTRwczhQb3QramJOajRiaDg1SEZPUTAwVkUvK0RWSm9xbkpKUgpmdkNNekRWRTFubVVqZGVaVmxraDl6MFBzbGI2RmJXL3ZqL3FMNFBkeW1VSG9PenFCUlV3SjZROWM3YmNKaEVxCm5pOFVlRm80K25EOTlZSzVrdDB1UGhFQ2dZQTBIVlUvUXE5azVZeTlNRURLTk9uWUMyS1hPV2c0dG1udVNvTmYKMXkzNTNwMC92ZXpTMGQ3TWwvTWVrN2Y0U2piQzU3dVlTN1dvc2drVWp4RGp0dTBLNFRWd0hYZmFBbzB5OVVITgpMNTVJUy94MkF1bExiUkpBbVRSR082Qm5BcHlZMVZ5UWVlUXpaYUkrRjZWYjFRY1c2TE1mckdIZkRDYkxzc0lMClNUSVBwUUtCZ0hyRFFGYUdsWGxtcDFhdzdvYkNRcHVNZ1RNKzhXWEVuSnZMaW52WkNkbFc1VXFZTmxVTlNaSy8KT3M4U3hPa3BTYXZQSjc1T21LeFFJQzhmWnJxU1BkTGEyQ2drSGZjdVA3T2dGM2xId3JOQzZZdWtIWTJKRTFyRwpQMEVvcjBhQmpmMzJGU3NucHpWRTJKQWJpZ1R2YUFVZ2x4TGZ2YmdhTTRneDZIKzhvOEEvCi0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==
+kind: Secret
+metadata:
+  name: injector-tls
+  namespace: vault
+---
+apiVersion: v1
+data:
+  password: cG9zdGdyZXM=
+  username: cG9zdGdyZXM=
+kind: Secret
+metadata:
+  name: vault-postgres-secret
+  namespace: vault
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault
+  namespace: vault
+spec:
+  ports:
+  - name: https
+    port: 8200
+    targetPort: 8200
+  - name: https-internal
+    port: 8201
+    targetPort: 8201
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/name: vault
+    component: server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault-active
+  namespace: vault
+spec:
+  ports:
+  - name: https
+    port: 8200
+    targetPort: 8200
+  - name: https-internal
+    port: 8201
+    targetPort: 8201
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/name: vault
+    component: server
+    vault-active: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault-agent-injector
+  name: vault-agent-injector-svc
+  namespace: vault
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/name: vault-agent-injector
+    component: webhook
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault-internal
+  namespace: vault
+spec:
+  clusterIP: None
+  ports:
+  - name: https
+    port: 8200
+    targetPort: 8200
+  - name: https-internal
+    port: 8201
+    targetPort: 8201
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/name: vault
+    component: server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault-standby
+  namespace: vault
+spec:
+  ports:
+  - name: https
+    port: 8200
+    targetPort: 8200
+  - name: https-internal
+    port: 8201
+    targetPort: 8201
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/name: vault
+    component: server
+    vault-active: "false"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault-agent-injector
+    component: webhook
+  name: vault-agent-injector
+  namespace: vault
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: vault
+      app.kubernetes.io/name: vault-agent-injector
+      component: webhook
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: vault
+        app.kubernetes.io/name: vault-agent-injector
+        component: webhook
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: vault
+                app.kubernetes.io/name: vault-agent-injector
+                component: webhook
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - args:
+        - agent-inject
+        - 2>&1
+        env:
+        - name: AGENT_INJECT_LISTEN
+          value: :8080
+        - name: AGENT_INJECT_LOG_LEVEL
+          value: trace
+        - name: AGENT_INJECT_VAULT_ADDR
+          value: https://vault.default.svc:8200
+        - name: AGENT_INJECT_VAULT_AUTH_PATH
+          value: auth/kubernetes
+        - name: AGENT_INJECT_VAULT_IMAGE
+          value: hashicorp/vault:1.7.3
+        - name: AGENT_INJECT_TLS_CERT_FILE
+          value: /etc/webhook/certs/tls.crt
+        - name: AGENT_INJECT_TLS_KEY_FILE
+          value: /etc/webhook/certs/tls.key
+        - name: AGENT_INJECT_LOG_FORMAT
+          value: standard
+        - name: AGENT_INJECT_REVOKE_ON_SHUTDOWN
+          value: "false"
+        - name: AGENT_INJECT_CPU_REQUEST
+          value: 250m
+        - name: AGENT_INJECT_CPU_LIMIT
+          value: 500m
+        - name: AGENT_INJECT_MEM_REQUEST
+          value: 64Mi
+        - name: AGENT_INJECT_MEM_LIMIT
+          value: 128Mi
+        - name: AGENT_INJECT_DEFAULT_TEMPLATE
+          value: map
+        - name: AGENT_INJECT_VAULT_ADDR
+          value: https://vault.vault.svc:8200
+        image: hashicorp/vault-k8s:0.10.2
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /health/ready
+            port: 8080
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: sidecar-injector
+        readinessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /health/ready
+            port: 8080
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 250m
+            memory: 256Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /etc/webhook/certs
+          name: webhook-certs
+          readOnly: true
+      hostNetwork: false
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 100
+      serviceAccountName: vault-agent-injector
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: injector-tls
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+  name: vault
+  namespace: vault
+spec:
+  podManagementPolicy: Parallel
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: vault
+      app.kubernetes.io/name: vault
+      component: server
+  serviceName: vault-internal
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: vault
+        app.kubernetes.io/name: vault
+        component: server
+        helm.sh/chart: vault-0.13.0
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: vault
+                app.kubernetes.io/name: vault
+                component: server
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - args:
+        - "cp /vault/config/extraconfig-from-values.hcl /tmp/storageconfig.hcl;\n[
+          -n \"${HOST_IP}\" ] && sed -Ei \"s|HOST_IP|${HOST_IP?}|g\" /tmp/storageconfig.hcl;\n[
+          -n \"${POD_IP}\" ] && sed -Ei \"s|POD_IP|${POD_IP?}|g\" /tmp/storageconfig.hcl;\n[
+          -n \"${HOSTNAME}\" ] && sed -Ei \"s|HOSTNAME|${HOSTNAME?}|g\" /tmp/storageconfig.hcl;\n[
+          -n \"${API_ADDR}\" ] && sed -Ei \"s|API_ADDR|${API_ADDR?}|g\" /tmp/storageconfig.hcl;\n[
+          -n \"${TRANSIT_ADDR}\" ] && sed -Ei \"s|TRANSIT_ADDR|${TRANSIT_ADDR?}|g\"
+          /tmp/storageconfig.hcl;\n[ -n \"${RAFT_ADDR}\" ] && sed -Ei \"s|RAFT_ADDR|${RAFT_ADDR?}|g\"
+          /tmp/storageconfig.hcl;\n/usr/local/bin/docker-entrypoint.sh vault server
+          -config=/tmp/storageconfig.hcl \n"
+        command:
+        - /bin/sh
+        - -ec
+        env:
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: VAULT_K8S_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: VAULT_K8S_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: VAULT_ADDR
+          value: https://127.0.0.1:8200
+        - name: VAULT_API_ADDR
+          value: https://$(POD_IP):8200
+        - name: SKIP_CHOWN
+          value: "true"
+        - name: SKIP_SETCAP
+          value: "true"
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: VAULT_CLUSTER_ADDR
+          value: https://$(HOSTNAME).vault-internal:8201
+        - name: HOME
+          value: /home/vault
+        - name: VAULT_LOG_LEVEL
+          value: debug
+        - name: VAULT_LOG_FORMAT
+          value: standard
+        - name: VAULT_ADDR
+          value: http://$(HOSTNAME).vault-internal.vault.svc:8200
+        - name: VAULT_CACERT
+          value: /vault/userconfig/injector-tls/tls.crt
+        image: hashicorp/vault:1.7.3
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - sleep 5 && kill -SIGTERM $(pidof vault)
+        name: vault
+        ports:
+        - containerPort: 8200
+          name: https
+        - containerPort: 8201
+          name: https-internal
+        - containerPort: 8202
+          name: https-rep
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - vault status -tls-skip-verify
+          failureThreshold: 2
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1000Mi
+          requests:
+            cpu: 500m
+            memory: 500Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /vault/config
+          name: config
+        - mountPath: /vault/userconfig/injector-tls
+          name: userconfig-injector-tls
+          readOnly: true
+        - mountPath: /home/vault
+          name: home
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 100
+      serviceAccountName: vault
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - configMap:
+          name: vault-config
+        name: config
+      - name: userconfig-injector-tls
+        secret:
+          defaultMode: 420
+          secretName: injector-tls
+      - emptyDir: {}
+        name: home
+  updateStrategy:
+    type: OnDelete
+  volumeClaimTemplates: null
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault
+    helm.sh/chart: vault-0.13.0
+  name: vault
+  namespace: vault
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: vault
+      app.kubernetes.io/name: vault
+      component: server
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    helm.sh/hook: test
+  name: vault-server-test
+  namespace: vault
+spec:
+  containers:
+  - command:
+    - /bin/sh
+    - -c
+    - |
+      echo "Checking for sealed info in 'vault status' output"
+      ATTEMPTS=10
+      n=0
+      until [ "$n" -ge $ATTEMPTS ]
+      do
+        echo "Attempt" $n...
+        vault status -format yaml | grep -E '^sealed: (true|false)' && break
+        n=$((n+1))
+        sleep 5
+      done
+      if [ $n -ge $ATTEMPTS ]; then
+        echo "timed out looking for sealed info in 'vault status' output"
+        exit 1
+      fi
+
+      exit 0
+    env:
+    - name: VAULT_ADDR
+      value: https://vault.default.svc:8200
+    image: hashicorp/vault:1.7.3
+    imagePullPolicy: IfNotPresent
+    name: vault-server-test
+  restartPolicy: Never
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  labels:
+    app.kubernetes.io/instance: vault
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: vault-agent-injector
+  name: vault-agent-injector-cfg
+webhooks:
+- admissionReviewVersions:
+  - v1beta1
+  - v1
+  clientConfig:
+    caBundle: |-
+      LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUR2ekNDQXFlZ0F3SUJBZ0lVZGFxN1hpSUR2
+      OEYybzVDTTdaUmpycS9hQW1Jd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2J6RUxNQWtHQTFVRUJoTUNU
+      a3d4RmpBVUJnTlZCQWdNRFU1dmIzSmtMVUp5WVdKaGJuUXhFakFRQmdOVgpCQWNNQ1VWcGJtUm9i
+      M1psYmpFUk1BOEdBMVVFQ2d3SVVHVnljMjl1WVd3eElUQWZCZ05WQkFNTUdIWmhkV3gwCkxXRm5a
+      VzUwTFdsdWFtVmpkRzl5TFhOMll6QWVGdzB5TVRBM01qZ3hOVFF3TkRoYUZ3MHlOakEzTWpjeE5U
+      UXcKTkRoYU1HOHhDekFKQmdOVkJBWVRBazVNTVJZd0ZBWURWUVFJREExT2IyOXlaQzFDY21GaVlX
+      NTBNUkl3RUFZRApWUVFIREFsRmFXNWthRzkyWlc0eEVUQVBCZ05WQkFvTUNGQmxjbk52Ym1Gc01T
+      RXdId1lEVlFRRERCaDJZWFZzCmRDMWhaMlZ1ZEMxcGJtcGxZM1J2Y2kxemRtTXdnZ0VpTUEwR0NT
+      cUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUsKQW9JQkFRQzZybHoxaVM4WkUzU1l5TUozSE5vdzFy
+      TnZHTGdINnJPTXg4eXJ0WDBtdVhHL1gzWktiSHFrN2N6SgpYOTZtcjBQVGVoMVpJWWJYajRRQm5S
+      cGYzdkluWi90K2pnTEdzeisrYVBiSnNaTGVKejdiT0hUU3JRMjRET0NECk5MZFRKOHU3bmNEM3Bw
+      MWNaaXFnYVJyZzdYVG45SjVuZlZNMFg5RHVhUFBJakRWLzJreGNsWjNsWFJGbHZtdksKRVNla3R5
+      dmJ4UC9LRTRLYW5zWUVlRDRORlQvUjVvSE13OXY3eFlYU1VpWDVGeUV3Sjk5RCtvWExRL21pRUc5
+      MwpTcDd0bE1RVVFMY1VadW5IOFlmdm9ucEpaZG9wdzJhNWRUVE5MRmdTV2pzNm1CQ0tVK2NRWlhL
+      NFJRREpzcmVuCmhRNWZWYTczVllUSnZjV1JkMU9VSHNnd0FocG5BZ01CQUFHalV6QlJNQjBHQTFV
+      ZERnUVdCQlNacEJwZSs3VDAKR0x4RnRWOHU1NzZlQU5kclBUQWZCZ05WSFNNRUdEQVdnQlNacEJw
+      ZSs3VDBHTHhGdFY4dTU3NmVBTmRyUFRBUApCZ05WSFJNQkFmOEVCVEFEQVFIL01BMEdDU3FHU0li
+      M0RRRUJDd1VBQTRJQkFRQUpaQ0g1QTFJZDBoSnJUZ0pkCmZUZ0ZLSkVkbm1rWXF2SzJFRkFSQXEv
+      MzNpUXFlcUkvL2xSWmZGbytJWVZVQUgzUDZjNUMwNjQ2dStLRHljUXYKeVo5UWMyTzRnY1RnbzdC
+      YldSdnhQYUlHb3U4ck1UYWlVVGhpQ3hPT3laNWVkSm9QVXJ3OXJZU21LbEVLRitlagpHOHl6MlVS
+      ZVJUMTZXdXJFL25IZURJTlpqcWt3NkdEL1MyaFQyQWtkVXk5eHFoN0UrSys1OVcrc2VYN3I3WGlr
+      Ci9HNld3Nzd5RzM2azhlTDdCMCtvTzNJSXhuTDIvY0VVTUxVU3JlUjBNK2ZCZ1NDRXpzMGtiNXNr
+      ekdlbHNEY0EKZSt3VFRDbVVxQm44RGxRQ29QdnJzb05Na2xwam5ieEcvemRqRlppODl4anh5SVVI
+      Z2dnMTFLMWlaQXUrUGwrWQo5S2NXCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    service:
+      name: vault-agent-injector-svc
+      namespace: vault
+      path: /mutate
+  failurePolicy: Ignore
+  name: vault.hashicorp.com
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pods
+  sideEffects: None
