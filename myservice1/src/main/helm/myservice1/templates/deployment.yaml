@@ -20,12 +20,14 @@ spec:
       {{- end }}
         {{- if .Values.vault.enabled }}
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "apps-vault-role"
-        vault.hashicorp.com/agent-inject-secret-apps-myservice1.txt: "apps/myservice1"
-        vault.hashicorp.com/log-level: "debug"
-        #vault.hashicorp.com/ca-cert: "/vault/tls/ca.crt"
+        vault.hashicorp.com/agent-inject-status: "update"
+        vault.hashicorp.com/role: "vault-role"
+        vault.hashicorp.com/agent-inject-secret-app-db-creds.txt: "app-resource-creds/db-creds"
+        vault.hashicorp.com/log-level: "trace"
+        #vault.hashicorp.com/ca-cert: "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        #vault.hashicorp.com/ca-cert: "/vault/injector-tls/tls.crt"
         #vault.hashicorp.com/client-cert: "/vault/tls/client.crt"
-        #vault.hashicorp.com/client-key: "/vault/tls/client.key"
+        #vault.hashicorp.com/client-key: "/vault/tls/tls.key"
         #vault.hashicorp.com/tls-secret: "injector-tls"
         {{- end }}
       labels:

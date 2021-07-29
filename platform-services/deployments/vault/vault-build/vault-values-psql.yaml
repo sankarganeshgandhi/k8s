@@ -148,7 +148,7 @@ injector:
   # injector deployment.
   extraEnvironmentVars:
     # KUBERNETES_SERVICE_HOST: kubernetes.default.svc
-    AGENT_INJECT_VAULT_ADDR: "https://vault.vault.svc:8200"
+    AGENT_INJECT_VAULT_ADDR: "http://vault.vault.svc:8200"
 
   # Affinity Settings for injector pods
   # This can either be multi-line string or YAML matching the PodSpec's affinity field.
