@@ -22,13 +22,39 @@ spec:
         vault.hashicorp.com/agent-inject: "true"
         vault.hashicorp.com/agent-inject-status: "update"
         vault.hashicorp.com/role: "vault-role"
-        vault.hashicorp.com/agent-inject-secret-app-db-creds.txt: "app-resource-creds/db-creds"
-        vault.hashicorp.com/log-level: "trace"
+        vault.hashicorp.com/agent-inject-secret-app-db-creds: {{ .Values.vault.secret_path }}
+        vault.hashicorp.com/agent-inject-template-app-db-creds: |
+          {{`
+          {{ with secret "`}} {{- .Values.vault.secret_path -}}  {{`" }}
+          export DB_USERNAME={{ .Data.username }}
+          export DB_PASSWORD={{ .Data.password }}
+          {{ end }}
+          `}}
+        #vault.hashicorp.com/agent-inject-template-app-db-creds: |-
+        #  {{`{{- with secret `}}"{{ .Values.vault.secret_path }}"{{` -}}`}}
+        #  {{`{{- range $k, $v := .Data.data }}`}}
+        #  {{`{{ $k }}={{ $v }}`}}
+        #  {{`{{- end }}`}}
+        #  {{`{{- end }}`}}
+        #vault.hashicorp.com/agent-inject-template-app-db-creds: |-
+        #  {{`{{- with secret `}}"{{ .Values.vault.secret_path }}"{{` -}}`}}
+        #  {{` export `}}{{ .Values.vault.DB_EnvUserName }}={{`{{ .Data.data.`}}{{ .Values.vault.DB_SecretUserName }} {{`}}`}}
+        #  {{` export DB_PASSWORD={{ .Data.data.password }} `}}
+        #  {{` {{- end }} `}}
+        ## Environment variable export template
+        #vault.hashicorp.com/agent-inject-template-app-db-creds.txt: |-
+        #  {{`{{- with secret `}}"{{ .Values.vault.secret_path }}"{{` -}}`}}
+        #  {{`{{- range $k, $v := .Data.data }}`}}
+        #  {{`{{ $k }}={{ $v }}`}}
+        #  {{`{{- end }}`}}
+        #  {{`{{- end }}`}}
+        #vault.hashicorp.com/agent-configmap: {{ include "myservice1.fullname" . }}-config
         #vault.hashicorp.com/ca-cert: "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
         #vault.hashicorp.com/ca-cert: "/vault/injector-tls/tls.crt"
         #vault.hashicorp.com/client-cert: "/vault/tls/client.crt"
         #vault.hashicorp.com/client-key: "/vault/tls/tls.key"
         #vault.hashicorp.com/tls-secret: "injector-tls"
+        vault.hashicorp.com/log-level: "trace"
         {{- end }}
       labels:
         {{- include "myservice1.selectorLabels" . | nindent 8 }}

@@ -44,7 +44,7 @@ service:
   port: 8080
 
 env:
-  #SVC_DATABASE_URL: "postgres://postgre@postgres-svc:5432/helm-localdb" 
+  SVC_DATABASE_URL: "postgres://postgre@postgres-svc:5432/helm-localdb" 
 
 ingress:
   enabled: false
@@ -73,6 +73,11 @@ resources:
 
 vault:
   enabled: true
+  secret_path: "app-resource-creds/db-creds"
+  DB_SecretUserName: username
+  DB_EnvUserName: DB_USERNAME
+  DB_SecretPassword: username
+  DB_EnvPasswordName: DB_PASSWORD
 
 autoscaling:
   enabled: false
