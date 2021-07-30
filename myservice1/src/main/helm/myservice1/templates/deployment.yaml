@@ -26,16 +26,24 @@ spec:
         vault.hashicorp.com/agent-inject-template-app-db-creds: |
           {{`
           {{ with secret "`}} {{- .Values.vault.secret_path -}}  {{`" }}
-          export DB_USERNAME={{ .Data.username }}
-          export DB_PASSWORD={{ .Data.password }}
+          {{- range $k, $v := .Data.data }}
+          export {{ $k }}={{ $v }}
           {{ end }}
-          `}}
+          {{ end }}
+         `}}
         #vault.hashicorp.com/agent-inject-template-app-db-creds: |-
         #  {{`{{- with secret `}}"{{ .Values.vault.secret_path }}"{{` -}}`}}
         #  {{`{{- range $k, $v := .Data.data }}`}}
         #  {{`{{ $k }}={{ $v }}`}}
         #  {{`{{- end }}`}}
         #  {{`{{- end }}`}}
+        #vault.hashicorp.com/agent-inject-template-app-db-creds: |
+        #  {{`
+        #  {{ with secret "`}} {{- .Values.vault.secret_path -}}  {{`" }}
+        #  export DB_USERNAME={{ .Data.data.username }}
+        #  export DB_PASSWORD={{ .Data.data.password }}
+        #  {{ end }}
+        # `}}
         #vault.hashicorp.com/agent-inject-template-app-db-creds: |-
         #  {{`{{- with secret `}}"{{ .Values.vault.secret_path }}"{{` -}}`}}
         #  {{` export `}}{{ .Values.vault.DB_EnvUserName }}={{`{{ .Data.data.`}}{{ .Values.vault.DB_SecretUserName }} {{`}}`}}
@@ -72,6 +80,10 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          #lifecycle:
+          #  postStart:
+          #    exec:
+          #      command: ["/bin/sh", "-c", "source /vault/secrets/app-db-creds"]
           ports:
             - name: http
               containerPort: 8080
