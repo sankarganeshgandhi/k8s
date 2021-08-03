@@ -8,3 +8,75 @@ data:
   {{- range $key, $val := .Values.env }}
   {{ $key }}: {{ $val | quote }}
   {{- end}}
+  config.hcl: |
+    "auto_auth" = {
+      "method" = {
+        "config" = {
+          "role" = "vault-role"
+        }
+        "type" = "kubernetes"
+      }
+
+      "sink" = {
+        "config" = {
+          "path" = "/home/vault/.token"
+        }
+
+        "type" = "file"
+      }
+    }
+
+    "exit_after_auth" = false
+    "pid_file" = "/home/vault/.pid"
+
+    template {
+      destination = "/vault/secrets/db-creds"
+      contents = <<EOT
+      <html>
+      <body>
+      <p>Some secrets:</p>
+      {{`
+      {{- with secret "app-credentials/database" }}
+      <ul>
+      <li><pre>username: {{ .Data.data.username }}</pre></li>
+      <li><pre>password: {{ .Data.data.password }}</pre></li>
+      </ul>
+      {{ end }}
+      `}}
+      </body>
+      </html>
+      EOT
+    }
+
+    "vault" = {
+      "address" = "http://vault.vault.svc.cluster.local:8200"
+    }
+  config-init.hcl: |
+    "auto_auth" = {
+      "method" = {
+        "config" = {
+          "role" = "vault-role"
+        }
+        "type" = "kubernetes"
+      }
+
+      "sink" = {
+        "config" = {
+          "path" = "/home/vault/.token"
+        }
+
+        "type" = "file"
+      }
+    }
+
+    "exit_after_auth" = true
+    "pid_file" = "/home/vault/.pid"
+
+    "template" = {
+      "contents" = "dsadadas"
+      "destination" = "/vault/secrets/db-creds"
+    }
+
+    "vault" = {
+      "address" = "http://vault.vault.svc.cluster.local:8200"
+    }

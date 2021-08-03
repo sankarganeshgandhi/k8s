@@ -74,10 +74,7 @@ resources:
 vault:
   enabled: true
   secret_path: "app-resource-creds/db-creds"
-  DB_SecretUserName: username
-  DB_EnvUserName: DB_USERNAME
-  DB_SecretPassword: username
-  DB_EnvPasswordName: DB_PASSWORD
+  #secret_path: "app-credentials/database"
 
 autoscaling:
   enabled: false

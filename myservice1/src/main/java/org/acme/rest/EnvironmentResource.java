@@ -13,9 +13,13 @@ public class EnvironmentResource {
     @ConfigProperty(name="svc.database.url", defaultValue="not set")
     String databaseURL;
 
+    @ConfigProperty(name="username", defaultValue="not set")
+    String userNameFromEnv;
+
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public String getEnvVariables() {
-        return "Database URL: " + databaseURL;
+        String envVariables = "Database URL: " + databaseURL + ";userName: " + userNameFromEnv;
+        return "Env Variables: " + envVariables;
     }
 }

@@ -4,12 +4,28 @@ kind: Kustomization
 namespace: vault
 
 helmChartInflationGenerator:
+#- chartName: kubernetes-external-secrets
+#  chartHome: helm-charts
+#  chartVersion: 8.2.2
+#  releaseName: external-secrets
+#  values: external-secrets-vaules.yaml
+#  chartRepoUrl: https://external-secrets.github.io/kubernetes-external-secrets
+#  extraArgs: 
+#    - '--include-crds'
 - chartName: vault
   chartHome: helm-charts
   chartVersion: 0.13.0
   releaseName: vault
   values: vault-values-psql.yaml
   chartRepoUrl: https://helm.releases.hashicorp.com
+- chartName: kubernetes-external-secrets
+  chartHome: helm-charts
+  chartVersion: 8.2.3
+  releaseName: external-secrets
+  values: external-secrets-vaules.yaml
+  chartRepoUrl: https://external-secrets.github.io/kubernetes-external-secrets/
+  extraArgs: 
+    - '--include-crds'
 
 #configMapGenerator:
 #- name: vault-initdb-configmap
