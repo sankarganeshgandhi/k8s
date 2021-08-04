@@ -18,51 +18,51 @@ spec:
       {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
-        {{- if .Values.vault.enabled }}
-        vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/agent-inject-status: "update"
-        vault.hashicorp.com/role: "vault-role"
-        vault.hashicorp.com/agent-inject-secret-app-db-creds: {{ .Values.vault.secret_path }}
-
+        #{{- if .Values.vault.enabled }}
+        ## not required with external-secrets
+        #vault.hashicorp.com/agent-inject: "true"
+        #vault.hashicorp.com/agent-inject-status: "update"
+        #vault.hashicorp.com/role: "vault-role"
+        #vault.hashicorp.com/agent-inject-secret-app-db-creds: {{ .Values.vault.pathToSecrets }}
         ## for KV version 1 engine
-        vault.hashicorp.com/agent-inject-template-app-db-creds: |
-          {{`
-          {{ with secret "`}} {{- .Values.vault.secret_path -}}  {{`" }}
-          {{- range $k, $v := .Data }}
-          export {{ $k }}={{ $v }}
-          {{ end }}
-          {{ end }}
-         `}}
+        #vault.hashicorp.com/agent-inject-template-app-db-creds: |
+        #  {{`
+        #  {{ with secret "`}} {{- .Values.vault.pathToSecrets -}}  {{`" }}
+        #  {{- range $k, $v := .Data }}
+        #  export {{ $k }}={{ $v }}
+        #  {{ end }}
+        #  {{ end }}
+        # `}}
         ## for KV version 2 engine
         #vault.hashicorp.com/agent-inject-template-app-db-creds: |
         #  {{`
-        #  {{ with secret "`}} {{- .Values.vault.secret_path -}}  {{`" }}
+        #  {{ with secret "`}} {{- .Values.vault.pathToSecrets -}}  {{`" }}
         #  {{- range $k, $v := .Data.data }}
         #  export {{ $k }}={{ $v }}
         #  {{ end }}
         #  {{ end }}
         # `}}
         #vault.hashicorp.com/agent-inject-template-app-db-creds: |-
-        #  {{`{{- with secret `}}"{{ .Values.vault.secret_path }}"{{` -}}`}}
+        #  {{`{{- with secret `}}"{{ .Values.vault.pathToSecrets }}"{{` -}}`}}
         #  {{`{{- range $k, $v := .Data.data }}`}}
         #  {{`{{ $k }}={{ $v }}`}}
         #  {{`{{- end }}`}}
         #  {{`{{- end }}`}}
         #vault.hashicorp.com/agent-inject-template-app-db-creds: |
         #  {{`
-        #  {{ with secret "`}} {{- .Values.vault.secret_path -}}  {{`" }}
+        #  {{ with secret "`}} {{- .Values.vault.pathToSecrets -}}  {{`" }}
         #  export DB_USERNAME={{ .Data.data.username }}
         #  export DB_PASSWORD={{ .Data.data.password }}
         #  {{ end }}
         # `}}
         #vault.hashicorp.com/agent-inject-template-app-db-creds: |-
-        #  {{`{{- with secret `}}"{{ .Values.vault.secret_path }}"{{` -}}`}}
+        #  {{`{{- with secret `}}"{{ .Values.vault.pathToSecrets }}"{{` -}}`}}
         #  {{` export `}}{{ .Values.vault.DB_EnvUserName }}={{`{{ .Data.data.`}}{{ .Values.vault.DB_SecretUserName }} {{`}}`}}
         #  {{` export DB_PASSWORD={{ .Data.data.password }} `}}
         #  {{` {{- end }} `}}
         ## Environment variable export template
         #vault.hashicorp.com/agent-inject-template-app-db-creds.txt: |-
-        #  {{`{{- with secret `}}"{{ .Values.vault.secret_path }}"{{` -}}`}}
+        #  {{`{{- with secret `}}"{{ .Values.vault.pathToSecrets }}"{{` -}}`}}
         #  {{`{{- range $k, $v := .Data.data }}`}}
         #  {{`{{ $k }}={{ $v }}`}}
         #  {{`{{- end }}`}}
@@ -73,8 +73,8 @@ spec:
         #vault.hashicorp.com/client-cert: "/vault/tls/client.crt"
         #vault.hashicorp.com/client-key: "/vault/tls/tls.key"
         #vault.hashicorp.com/tls-secret: "injector-tls"
-        vault.hashicorp.com/log-level: "trace"
-        {{- end }}
+        #vault.hashicorp.com/log-level: "trace"
+        #{{- end }}
       labels:
         {{- include "myservice1.selectorLabels" . | nindent 8 }}
     spec:
@@ -131,6 +131,8 @@ spec:
           envFrom:
           - configMapRef:
               name: {{ include "myservice1.fullname" . }}-config
+          - secretRef:
+              name: {{ include "myservice1.fullname" . }}-ext-secrets
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

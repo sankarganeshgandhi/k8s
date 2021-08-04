@@ -73,8 +73,8 @@ resources:
 
 vault:
   enabled: true
-  secret_path: "app-resource-creds/db-creds"
-  #secret_path: "app-credentials/database"
+  pathToSecrets: "app-resource-creds/db-creds"
+  appRole: vault-role
 
 autoscaling:
   enabled: false
