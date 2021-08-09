@@ -1,4 +1,12 @@
 quarkus:
+#  application:
+#    name: myservice1-vault-referece-implementation
+  kubernetes-config:
+    enabled: true
+    fail-on-missing-config: false
+    secrets:
+      ~: myservice1-ext-secrets
+      enabled: true
   http:
     root-path: /
     non-application-root-path: q
@@ -9,4 +17,4 @@ quarkus:
 ## environment variable
 svc:
   database:
-    url: "postgres://postgre@postgres-svc:5432/localdb"
+    url: "postgres://postgre@postgres-svc:5432/localdb-yaml"

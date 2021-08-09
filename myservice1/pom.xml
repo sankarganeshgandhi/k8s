@@ -35,7 +35,6 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-reactive-messaging-kafka</artifactId>
     </dependency>
-    
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-config-yaml</artifactId>
@@ -44,6 +43,10 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-kubernetes</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-kubernetes-config</artifactId>
+      </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-container-image-jib</artifactId>

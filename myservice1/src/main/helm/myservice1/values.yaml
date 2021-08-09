@@ -44,7 +44,7 @@ service:
   port: 8080
 
 env:
-  SVC_DATABASE_URL: "postgres://postgre@postgres-svc:5432/helm-localdb" 
+  #SVC_DATABASE_URL: "postgres://postgre@postgres-svc:5432/helm-localdb" 
 
 ingress:
   enabled: false

@@ -131,8 +131,8 @@ spec:
           envFrom:
           - configMapRef:
               name: {{ include "myservice1.fullname" . }}-config
-          - secretRef:
-              name: {{ include "myservice1.fullname" . }}-ext-secrets
+          #- secretRef:
+          #    name: {{ include "myservice1.fullname" . }}-ext-secrets
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
