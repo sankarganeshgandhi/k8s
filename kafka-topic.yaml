@@ -1,0 +1,18 @@
+{{- if .Values.kafka.topics.enabled -}}
+{{- $kafkaServerName := .Values.kafka.server.name }}
+{{- range $topicName, $topicConfig := .Values.kafka.topics.configurations }}
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: {{ $topicName }}
+  labels:
+    strimzi.io/cluster: {{ $kafkaServerName }}
+spec:
+  partitions: {{ $topicConfig.partitions }}
+  replicas: {{ $topicConfig.replicas }}
+  config:
+    retention.ms: 604800000
+    segment.bytes: 1073741824
+---
+{{- end }}
+{{- end }}
