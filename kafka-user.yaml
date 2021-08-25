@@ -18,11 +18,11 @@ spec:
           patternType: literal
         operation: Read
         host: '*'
-      {{- range $topicName, $topicConfig := .Values.kafka.topics.configurations }}
+      {{- range $key, $topicConfig := .Values.kafka.topics.configurations }}
         {{- range $aclKey, $aclValue := $topicConfig.user_acl }}
       - resource:
           type: topic
-          name: {{ $topicName }}
+          name: {{ $topicConfig.name }}
           patternType: literal
         operation: {{ $aclValue }}
         host: '*'
