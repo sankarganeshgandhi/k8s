@@ -53,15 +53,17 @@ env:
 kafka:
   server:
     enabled: true
-    name: mesaaging-producer
+    name: tracing-producer
+    replicas: 1
   user:
     enabled: true
-    name: myuser
+    name: scbuser
     consumer_group: mygroup
   topics:
     enabled: true
     configurations:
-      topic_name1:
+      - topic:
+        name: ful-fillment-order-created
         partitions: 1
         replicas: 1
         user_acl:
@@ -69,7 +71,8 @@ kafka:
           - Describe
           - Write
           - Create
-      topic_name2:
+      - topic:
+        name: ful-fillment-order-created-from-rest
         partitions: 1
         replicas: 1
         user_acl:
@@ -77,7 +80,8 @@ kafka:
           - Describe
           - Write
           - Create
-      topic_name3:
+      - topic:
+        name: stock-reserved
         partitions: 1
         replicas: 1
         user_acl:
