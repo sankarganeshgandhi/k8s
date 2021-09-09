@@ -1,0 +1,31 @@
+{{- if .Values.kafka.user.enabled -}}
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: {{ .Values.kafka.user.name }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.server.name }}
+    {{- include "tracing-producer.labels" . | nindent 4 }}
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: group
+          name: {{ .Values.kafka.user.consumer_group }}
+          patternType: literal
+        operation: Read
+        host: '*'
+      {{- range $key, $topicConfig := .Values.kafka.topics.configurations }}
+        {{- range $aclKey, $aclValue := $topicConfig.user_acl }}
+      - resource:
+          type: topic
+          name: {{ $topicConfig.name }}
+          patternType: literal
+        operation: {{ $aclValue }}
+        host: '*'
+        {{- end }}
+      {{- end }}
+{{- end }}
