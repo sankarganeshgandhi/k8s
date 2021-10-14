@@ -1,0 +1,12 @@
+{{- if .Values.configurations.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "service.name" . }}-config
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+data:
+  {{- range $key, $val := .Values.configurations.data.configRef }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end}}
+{{- end}}

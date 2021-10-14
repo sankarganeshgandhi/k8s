@@ -1,0 +1,167 @@
+## Default values for example1.
+## This is a YAML-formatted file.
+## Declare variables to be passed into your templates.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  ## Overrides the image tag whose default is the chart appVersion.
+  tag: "{{ default .Chart.AppVersion .Values.image.tag }}"
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+serviceAccount:
+  ## Specifies whether a service account should be created
+  create: true
+  ## Annotations to add to the service account
+  annotations: {}
+  ## The name of the service account to use.
+  ## If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000  
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+      - path: /
+        backend:
+          serviceName: chart-example.local
+          servicePort: 80
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+## We usually recommend not to specify default resources and to leave this as a conscious
+## choice for the user. This also increases chances charts run on environments with little
+## resources, such as Minikube. If you do want to specify resources, uncomment the following
+## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+## This is the block where the configuration of the application/service starts
+kafka:
+  server:
+    enabled: true
+    name: kafka-server
+    replicas: 1
+  user:
+    enabled: true
+  topics:
+    enabled: true
+    configurations:
+      - topic:
+        name: ful-fillment-order-created
+        partitions: 1
+        replicas: 1
+        retention_in_ms: '604800000'
+        segment_in_bytes: '1073741824'
+        users:
+          - userName: scbuser
+            consumerGroup: mygroup
+            userACL:
+              - Read
+              - Describe
+              - Write
+              - Create
+      - topic:
+        name: ful-fillment-order-created-from-rest
+        partitions: 1
+        replicas: 1
+        retention_in_ms: '604800000'
+        segment_in_bytes: '1073741824'
+        users:
+          - userName: scbuser
+            consumerGroup: mygroup
+            userACL:
+              - Read
+              - Describe
+              - Write
+              - Create
+      - topic:
+        name: stock-reserved
+        partitions: 1
+        replicas: 1
+        retention_in_ms: '604800000'
+        segment_in_bytes: '1073741824'
+        users:
+          - userName: scbuser
+            consumerGroup: mygroup
+            userACL:
+              - Read
+              - Describe
+              - Write
+              - Create
+          - userName: scbuser111
+            consumerGroup: mygroup
+            userACL:
+              - Read
+              - Describe
+              - Write
+              - Create
+configurations:
+  enabled: true
+  data:
+    configRef:
+      QUARKUS_HTTP_PORT: 8080
+      QUARKUS_JAEGER_ENDPOINT: http://jaeger-collector.tracing:14268/api/traces
+      QUARKUS_JAEGER_PROPAGATION: b3
+    secretsRef:
+    - name: DATA_SOURCE_USER
+      valueFrom:
+        secretKeyRef:
+          name: mysystem.YOUR_SERVICE_NAME.credentials
+          key: username
+    - name: DATA_SOURCE_USER_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: mysystem.YOUR_SERVICE_NAME.credentials
+          key: password
+
+secrets:
+  enabled: false
+## This is the block where the configuration of the application/service ends

@@ -1,0 +1,103 @@
+### This is to cretae the Kafka cluster infrastructure
+{{- if .Values.kafka.server.enabled -}}
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: {{ include "service.name" . }}-{{ .Values.kafka.server.name }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  kafka:
+    version: 2.6.0
+    replicas: 1
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    config:
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      log.message.format.version: "2.6"
+      zookeper.connection.timeout.ms: 3000
+      zookeper.session.timeout.ms: 3000
+      controlled.shutdown.enable: false
+    storage:
+      type: ephemeral
+  zookeeper:
+    replicas: 1
+    storage:
+      type: ephemeral
+    jvmOptions:
+      javaSystemProperties:
+        - name: zookeeper.ssl.hostnameVerification
+          value: "false"
+        - name: zookeeper.ssl.quorum.hostnameVerification
+          value: "false"
+        - name: zookeeper.electionPortBindRetry
+          value: "100"
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+{{- end }}
+---
+### This is to create the Kafka Topic
+{{- if .Values.kafka.topics.enabled -}}
+{{- $kafkaServerName := .Values.kafka.server.name }}
+{{- range $key, $topicConfig := .Values.kafka.topics.configurations }}
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: {{ $topicConfig.name }}
+  labels:
+    strimzi.io/cluster: {{ $kafkaServerName }}
+spec:
+  partitions: {{ $topicConfig.partitions }}
+  replicas: {{ $topicConfig.replicas }}
+  config:
+    retention.ms: {{ $topicConfig.retention_in_ms }}
+    segment.bytes: {{ $topicConfig.segment_in_bytes }}
+---
+{{- end }}
+{{- end }}
+---
+### This manifest create the Kafka user along with the ACLs for the Kafka Topic mentioned
+{{- if .Values.kafka.user.enabled -}}
+{{- $kafkaServerName := .Values.kafka.server.name }}
+  {{- range $key, $topic := .Values.kafka.topics.configurations }}
+    {{- range $key, $user := $topic.users }}
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: {{ $user.userName }}
+  labels:
+    strimzi.io/cluster: {{ $kafkaServerName }}
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: group
+          name: {{ $user.consumerGroup }}
+          patternType: literal
+        operation: Read
+        host: '*'
+      {{- range $aclKey, $aclValue := $user.userACL }}
+      - resource:
+          type: topic
+          name: {{ $topic.name }}
+          patternType: literal
+        operation: {{ $aclValue }}
+        host: '*'
+      {{- end }}
+---
+    {{- end }}
+  {{- end }}
+{{- end }}
