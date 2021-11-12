@@ -1,28 +1,26 @@
-## Default values for example1.
+## Default values for department-service.
 ## This is a YAML-formatted file.
 ## Declare variables to be passed into your templates.
+test:
+  enabled: false
 
-nameOverride: ""
-fullnameOverride: ""
+dataCenterLocation: onpremise
+dataCenterName: datacenter1
+kubernetesClusterName: infradev
+jaegerEndpoint: http://jaeger-collector.tracing:14268/api/traces
 
 image:
-  repository: nginx
-  pullPolicy: IfNotPresent
+  repository: "sankarganeshg/helm-refimpl"
+  pullPolicy: "Always"
   ## Overrides the image tag whose default is the chart appVersion.
-  tag: "{{ default .Chart.AppVersion .Values.image.tag }}"
+  tag: "0.1.0"
 
 imagePullSecrets: []
 
 replicaCount: 1
 
-serviceAccount:
-  ## Specifies whether a service account should be created
-  create: true
-  ## Annotations to add to the service account
-  annotations: {}
-  ## The name of the service account to use.
-  ## If not set and create is true, a name is generated using the fullname template
-  name: ""
+nameOverride: ""
+fullnameOverride: ""
 
 podAnnotations: {}
 
@@ -35,34 +33,13 @@ securityContext: {}
   #   - ALL
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
-  # runAsUser: 1000  
+  # runAsUser: 1000
 
-service:
-  type: ClusterIP
-  port: 80
-
-ingress:
-  enabled: false
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths:
-      - path: /
-        backend:
-          serviceName: chart-example.local
-          servicePort: 80
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
-
-## We usually recommend not to specify default resources and to leave this as a conscious
-## choice for the user. This also increases chances charts run on environments with little
-## resources, such as Minikube. If you do want to specify resources, uncomment the following
-## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
 resources: {}
+  ## We usually recommend not to specify default resources and to leave this as a conscious
+  ## choice for the user. This also increases chances charts run on environments with little
+  ## resources, such as Minikube. If you do want to specify resources, uncomment the following
+  ## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   # limits:
   #   cpu: 100m
   #   memory: 128Mi
@@ -83,85 +60,168 @@ tolerations: []
 
 affinity: {}
 
-## This is the block where the configuration of the application/service starts
+serviceAccount:
+  ## Specifies whether a service account should be created
+  create: true
+  ## Annotations to add to the service account
+  annotations: {}
+  ## The name of the service account to use.
+  ## If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+  ## underlying platform technology (either "java-spring", "java-quarkus" or ".net5" ) of the ITM to be mentioned here
+  platform: "java-quarkus"
+  readinessProbeUrl: /q/health/ready
+  livenessProbeUrl: /q/health/live
+
+####################################################################################################
+##
+## Your configuration of the ITM starts here
+##
+####################################################################################################
+swaggerui:
+  enabled: true
+
+env: 
+  STOCK_RESERVING_CLIENT_MP_REST_URL: http://tracing-consumer:8080
+
+####################################################################################################
+##
+## If your ITM depend on PostgreSQLDB to be created, PostgreSQL configurations goes here
+##
+####################################################################################################
+database:
+  service: 
+    enabled: true
+    platform: postgresql
+    name: psqldb
+    replicas: 1
+    diskVolume: 2Gi
+    databseSchemaName: wplat1-3
+    teamId: wplat
+    superUserName: scbuser
+    databaseUserName: dbuser1
+  secretName: sankarganeshg.wplat-postgres.credentials
+  usernameKey: username
+  passwordKey: password
+  connectionUrl: jdbc:postgresql://wplat-psqldb:5432/wplat1-3
+
+####################################################################################################
+##
+## If your ITM depend on Kafka, Kafka configurations goes here
+##
+####################################################################################################
 kafka:
   server:
-    enabled: true
-    name: kafka-server
-    replicas: 1
-  user:
-    enabled: true
+    enabled: false
+    config:
+      name: kafka
+      replicas: 1
+      listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+  bootstrapServerUrl: kafka-kafka-bootstrap.kafka.svc:9092
   topics:
     enabled: true
-    configurations:
+    ## Kafka bootstrap server to connect
+    ## for authorization to work create the topics and users in the Kafka's namespace
+    kafkaClusterName: kafka
+    config:
       - topic:
-        name: ful-fillment-order-created
+        name: ful-fillment-order ##topic name is prefixed with namespace or something random
         partitions: 1
         replicas: 1
-        retention_in_ms: '604800000'
-        segment_in_bytes: '1073741824'
+        retentionInMS: '604800000'
+        segmentInBytes: '1073741824'
         users:
-          - userName: scbuser
-            consumerGroup: mygroup
+          - userName: producer-user
+            consumerGroup: producer-group
             userACL:
               - Read
               - Describe
               - Write
               - Create
+          - userName: consumer-user
+            consumerGroup: consumer-group
+            userACL:
+              - Read
+              - Describe
       - topic:
         name: ful-fillment-order-created-from-rest
         partitions: 1
         replicas: 1
-        retention_in_ms: '604800000'
-        segment_in_bytes: '1073741824'
+        retentionInMS: '604800000'
+        segmentInBytes: '1073741824'
         users:
-          - userName: scbuser
-            consumerGroup: mygroup
+          - userName: producer-user
+            consumerGroup: producer-group
             userACL:
               - Read
               - Describe
               - Write
               - Create
+          - userName: consumer-user
+            consumerGroup: consumer-group
+            userACL:
+              - Read
+              - Describe
       - topic:
         name: stock-reserved
         partitions: 1
         replicas: 1
-        retention_in_ms: '604800000'
-        segment_in_bytes: '1073741824'
+        retentionInMS: '604800000'
+        segmentInBytes: '1073741824'
         users:
-          - userName: scbuser
-            consumerGroup: mygroup
+          - userName: producer-user
+            consumerGroup: producer-group
+            userACL:
+              - Read
+              - Describe
+          - userName: consumer-user
+            consumerGroup: consumer-group
             userACL:
               - Read
               - Describe
               - Write
               - Create
-          - userName: scbuser111
-            consumerGroup: mygroup
-            userACL:
-              - Read
-              - Describe
-              - Write
-              - Create
-configurations:
-  enabled: true
-  data:
-    configRef:
-      QUARKUS_HTTP_PORT: 8080
-      QUARKUS_JAEGER_ENDPOINT: http://jaeger-collector.tracing:14268/api/traces
-      QUARKUS_JAEGER_PROPAGATION: b3
-    secretsRef:
-    - name: DATA_SOURCE_USER
-      valueFrom:
-        secretKeyRef:
-          name: mysystem.YOUR_SERVICE_NAME.credentials
-          key: username
-    - name: DATA_SOURCE_USER_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: mysystem.YOUR_SERVICE_NAME.credentials
-          key: password
-
-secrets:
+  clientSecurity:
+    truststoreFileLocation: /etc/kafka-credentials/kafka-truststore-jks/truststore.jks
+    truststorePassword: password
+    keystoreFileLocation: /etc/kafka-credentials/kafka-user-p12/producer-user.p12
+    keystorePassword: '1234567'
+####################################################################################################
+##
+## Kafka configurations ends here
+##
+####################################################################################################
+##
+## If the API's of your ITM has to be exposed outside the K8S cluster, it should be done only through
+## Ingress. Your ingress configuration starts here
+##
+####################################################################################################
+ingress:
   enabled: false
-## This is the block where the configuration of the application/service ends
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: kafka-producer
+      paths: []
+  tls: []
+  #  - secretName: kafka-producer-tls
+  #    hosts:
+  #      - kafka-producer.local
+####################################################################################################
+##
+## Ingress configuration ends here
+##
+####################################################################################################
