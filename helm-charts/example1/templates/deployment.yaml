@@ -13,8 +13,9 @@ spec:
       {{- include "service.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
@@ -27,6 +28,13 @@ spec:
       serviceAccountName: {{ include "service.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: kafka-truststore-jks
+          secret:
+            secretName: truststore-jks
+        - name: kafka-user-p12
+          secret:
+            secretName: user-p12
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -35,21 +43,61 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 8080
               protocol: TCP
+          volumeMounts:
+            - mountPath: "/etc/kafka-credentials/kafka-truststore-jks"
+              name: kafka-truststore-jks
+              readOnly: true
+            - mountPath: "/etc/kafka-credentials/kafka-user-p12"
+              name: kafka-user-p12
+              readOnly: true
           livenessProbe:
             httpGet:
-              path: /
+              path: {{ .Values.service.livenessProbeUrl }}
               port: http
           readinessProbe:
             httpGet:
-              path: /
+              path: {{ .Values.service.readinessProbeUrl }}
               port: http
-          envFrom:
-            - configMapRef:
-                name: {{ include "service.name" . }}-config
           env:
-            {{- toYaml .Values.configurations.data.secretsRef | nindent 12 }}
+          {{- if eq .Values.service.platform  "java-quarkus" }}
+            - name: QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_NODE
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_POD
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid   
+            - name: QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_NODE
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_POD
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            {{- if .Values.database.secretName }}
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: {{ .Values.database.usernameKey }}
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: {{ .Values.database.passwordKey }}
+            {{- end }}  
+          {{- end }}
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          envFrom:
+          - configMapRef:
+              name: {{ include "service.fullname" . }}-config
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
