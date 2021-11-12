@@ -1,12 +1,61 @@
-{{- if .Values.configurations.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "service.name" . }}-config
+  name: {{ include "service.fullname" . }}-config
   labels:
     {{- include "service.labels" . | nindent 4 }}
 data:
-  {{- range $key, $val := .Values.configurations.data.configRef }}
+  {{- range $key, $val := .Values.env }}
   {{ $key }}: {{ $val | quote }}
   {{- end}}
-{{- end}}
+  #######################################################################################################
+  ##
+  ## Environment variables for Java-Quarkus application starts here
+  ##
+  #######################################################################################################
+  {{- if eq .Values.service.platform  "java-quarkus" }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.kafka.bootstrapServerUrl }}
+  QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_LOCATION: {{ .Values.dataCenterLocation }}
+  QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_DATACENTER: {{ .Values.dataCenterName }}
+  QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_CLUSTER: {{ .Values.kubernetesClusterName }}
+  QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_CONTAINER: {{ .Chart.Name }}
+  QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_LOCATION: {{ .Values.dataCenterLocation }}
+  QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_DATACENTER: {{ .Values.dataCenterName }}
+  QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_CLUSTER: {{ .Values.kubernetesClusterName }}
+  QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_CONTAINER: {{ .Chart.Name }}
+  QUARKUS_JAEGER_PROPAGATION: b3
+  QUARKUS_JAEGER_ENDPOINT: {{ .Values.jaegerEndpoint }}
+  QUARKUS_SWAGGER_UI_ALWAYS_INCLUDE: {{ .Values.swaggerui.enabled }}
+  QUARKUS_HTTP_PORT: {{ .Values.service.port }}
+  QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_FILE: {{ .Values.kafka.clientSecurity.keystoreFileLocation }}
+  QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_PASSWORD: {{ .Values.kafka.clientSecurity.keystorePassword }}
+  QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_FILE: {{ .Values.kafka.clientSecurity.truststoreFileLocation }}
+  QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_PASSWORD: {{ .Values.kafka.clientSecurity.truststorePassword }}
+  {{- end}}
+  #######################################################################################################
+  ##
+  ## Environment variables for Java-Quarkus application ends here
+  ##
+  #######################################################################################################
+  #######################################################################################################
+  ##
+  ## Environment variables for Java-Springboot application starts here
+  ##
+  #######################################################################################################
+  {{- if eq .Values.service.platform  "java-spring" }}
+  OPENTRACING_JAEGER_ENABLE-B3-PROPAGATION: true
+  OPENTRACING_JAEGER.HTTP-SENDER.URL: {{ .Values.jaegerEndpoint }}
+  {{- if .Values.swaggerui.enabled }}
+  SPRING_PROFILES_ACTIVE: swaggerui
+  {{- end}}
+  SERVER_SSL_KEY-STORE: {{ .Values.kafka.clientSecurity.keystoreFileLocation }}
+  SERVER_SSL_KEY-STORE-PASSWORD: {{ .Values.kafka.clientSecurity.keystorePassword }}
+  SERVER_SSL_TRUST-STORE: {{ .Values.kafka.clientSecurity.truststoreFileLocation }}
+  SERVER_SSL_TRUST-STORE-PASSWORD: {{ .Values.kafka.clientSecurity.truststorePassword }}
+  SPRING_KAFKA_BOOTSTRAP-SERVERS: {{ .Values.kafka.bootstrapServerUrl }}
+  {{- end}}
+  #######################################################################################################
+  ##
+  ## Environment variables for Java-Springboot application ends here
+  ##
+  #######################################################################################################
