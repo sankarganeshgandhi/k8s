@@ -100,7 +100,7 @@ database:
     name: psqldb
     replicas: 1
     diskVolume: 2Gi
-    databseSchemaName: wplat1-3
+    databaseSchemaName: wplat1-3
     teamId: wplat
     superUserName: scbuser
     databaseUserName: dbuser1
