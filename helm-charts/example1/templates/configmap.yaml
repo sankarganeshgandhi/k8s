@@ -8,11 +8,6 @@ data:
   {{- range $key, $val := .Values.env }}
   {{ $key }}: {{ $val | quote }}
   {{- end}}
-  #######################################################################################################
-  ##
-  ## Environment variables for Java-Quarkus application starts here
-  ##
-  #######################################################################################################
   {{- if eq .Values.service.platform  "java-quarkus" }}
   KAFKA_BOOTSTRAP_SERVERS: {{ .Values.kafka.bootstrapServerUrl }}
   QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_LOCATION: {{ .Values.dataCenterLocation }}
@@ -31,17 +26,11 @@ data:
   QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_PASSWORD: {{ .Values.kafka.clientSecurity.keystorePassword }}
   QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_FILE: {{ .Values.kafka.clientSecurity.truststoreFileLocation }}
   QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_PASSWORD: {{ .Values.kafka.clientSecurity.truststorePassword }}
+    {{- if .Values.database.connectionConfig.credentialParams }}
+  QUARKUS_DATASOURCE_USERNAME: {{ .Values.database.connectionConfig.credentialParams.username }}
+  QUARKUS_DATASOURCE_PASSWORD: {{ .Values.database.connectionConfig.credentialParams.password }}
+    {{- end}}
   {{- end}}
-  #######################################################################################################
-  ##
-  ## Environment variables for Java-Quarkus application ends here
-  ##
-  #######################################################################################################
-  #######################################################################################################
-  ##
-  ## Environment variables for Java-Springboot application starts here
-  ##
-  #######################################################################################################
   {{- if eq .Values.service.platform  "java-spring" }}
   OPENTRACING_JAEGER_ENABLE-B3-PROPAGATION: true
   OPENTRACING_JAEGER.HTTP-SENDER.URL: {{ .Values.jaegerEndpoint }}
@@ -54,8 +43,3 @@ data:
   SERVER_SSL_TRUST-STORE-PASSWORD: {{ .Values.kafka.clientSecurity.truststorePassword }}
   SPRING_KAFKA_BOOTSTRAP-SERVERS: {{ .Values.kafka.bootstrapServerUrl }}
   {{- end}}
-  #######################################################################################################
-  ##
-  ## Environment variables for Java-Springboot application ends here
-  ##
-  #######################################################################################################
