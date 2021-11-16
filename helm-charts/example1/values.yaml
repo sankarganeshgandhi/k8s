@@ -4,13 +4,20 @@
 test:
   enabled: false
 
+swaggerui:
+  enabled: true
+
+## Location of the data center. This shall be included in the logs and tracing messages
 dataCenterLocation: onpremise
-dataCenterName: datacenter1
-kubernetesClusterName: infradev
+## Name of the data center. This shall be included in the logs and tracing messages
+dataCenterName: sankarg
+## Name of the Kubernetes cluster. This shall be included in the logs and tracing messages
+kubernetesClusterName: sankar-cluster
+## End point URL of the tracing infra (Jaeger)
 jaegerEndpoint: http://jaeger-collector.tracing:14268/api/traces
 
 image:
-  repository: "sankarganeshg/helm-refimpl"
+  repository: "sankarganeshg/kafka-producer"
   pullPolicy: "Always"
   ## Overrides the image tag whose default is the chart appVersion.
   tag: "0.1.0"
@@ -70,133 +77,141 @@ serviceAccount:
   name: ""
 
 service:
+  ## DO NOT CHANGE THIS type UNLESS IT IS VERIFIED WITH ARCHITECTURE and CNAP
   type: ClusterIP
+  ## The port number on which the service will listen for incoming requests
   port: 8080
-  ## underlying platform technology (either "java-spring", "java-quarkus" or ".net5" ) of the ITM to be mentioned here
+  ## underlying platform technology (either "java-spring", "java-quarkus" or ".net" ) of the FM to be mentioned here
   platform: "java-quarkus"
+  ## Relative URL for the readiness check/probe. This needs to configured as per the URL exposed
+  ## by the technology platform used
   readinessProbeUrl: /q/health/ready
+  ## Relative URL for the liveness check/probe. This needs to configured as per the URL exposed
+  ## by the technology platform used
   livenessProbeUrl: /q/health/live
 
 ####################################################################################################
 ##
-## Your configuration of the ITM starts here
-##
-####################################################################################################
-swaggerui:
-  enabled: true
-
-env: 
-  STOCK_RESERVING_CLIENT_MP_REST_URL: http://tracing-consumer:8080
-
-####################################################################################################
-##
-## If your ITM depend on PostgreSQLDB to be created, PostgreSQL configurations goes here
+## If your FM depend on PostgreSQLDB to be created, PostgreSQL configurations goes here
 ##
 ####################################################################################################
 database:
-  service: 
-    enabled: true
-    platform: postgresql
-    name: psqldb
-    replicas: 1
-    diskVolume: 2Gi
-    databaseSchemaName: wplat1-3
-    teamId: wplat
-    superUserName: scbuser
-    databaseUserName: dbuser1
-  secretName: sankarganeshg.wplat-postgres.credentials
-  usernameKey: username
-  passwordKey: password
-  connectionUrl: jdbc:postgresql://wplat-psqldb:5432/wplat1-3
+  service: {}
+    # enabled: true
+    # config:
+    #   platform: postgresql
+    #   name: psqldb
+    #   replicas: 1
+    #   persistenceVolume: 2Gi
+    #   databaseSchemaName: wplat1-3
+    #   teamId: wplat
+    #   superUserName: scbuser
+    #   databaseUserName: db-user-1
+  connectionConfig:
+    credentialSecretParams: {}
+      # secretName: db-user-1.wplat-postgres.credentials
+      # usernameKey: username
+      # passwordKey: password
+    ## in production we will not use the plain text form of credentials. This is available for the development
+    ## purpose
+    credentialParams:
+      username: someusername
+      password: somepassword
+    connectionUrl: jdbc:postgresql://wplat-psqldb:5432/wplat1-3
 
 ####################################################################################################
 ##
-## If your ITM depend on Kafka, Kafka configurations goes here
+## If your FM depend on Kafka, Kafka configurations goes here
 ##
 ####################################################################################################
 kafka:
-  server:
-    enabled: false
-    config:
-      name: kafka
-      replicas: 1
-      listeners:
-      - name: plain
-        port: 9092
-        type: internal
-        tls: false
-      - name: tls
-        port: 9093
-        type: internal
-        tls: true
+  service: {}
+    # enabled: false
+    # config:
+    #   name: kafka
+    #   replicas: 1
+    #   listeners:
+    #   - name: plain
+    #     port: 9092
+    #     type: internal
+    #     tls: false
+    #   - name: tls
+    #     port: 9093
+    #     type: internal
+    #     tls: true
+  topics: {}
+    # enabled: true
+    # ## Kafka bootstrap server to connect
+    # ## for authorization to work create the topics and users in the Kafka's namespace
+    # kafkaClusterName: kafka
+    # config:
+    #   - topic:
+    #     name: ful-fillment-order ##topic name is prefixed with namespace or something random
+    #     partitions: 1
+    #     replicas: 1
+    #     retentionInMS: '604800000'
+    #     segmentInBytes: '1073741824'
+    #     users:
+    #       - userName: producer-user
+    #         consumerGroup: producer-group
+    #         userACL:
+    #           - Read
+    #           - Describe
+    #           - Write
+    #           - Create
+    #       - userName: consumer-user
+    #         consumerGroup: consumer-group
+    #         userACL:
+    #           - Read
+    #           - Describe
+    #   - topic:
+    #     name: ful-fillment-order-created-from-rest
+    #     partitions: 1
+    #     replicas: 1
+    #     retentionInMS: '604800000'
+    #     segmentInBytes: '1073741824'
+    #     users:
+    #       - userName: producer-user
+    #         consumerGroup: producer-group
+    #         userACL:
+    #           - Read
+    #           - Describe
+    #           - Write
+    #           - Create
+    #       - userName: consumer-user
+    #         consumerGroup: consumer-group
+    #         userACL:
+    #           - Read
+    #           - Describe
+    #   - topic:
+    #     name: stock-reserved
+    #     partitions: 1
+    #     replicas: 1
+    #     retentionInMS: '604800000'
+    #     segmentInBytes: '1073741824'
+    #     users:
+    #       - userName: producer-user
+    #         consumerGroup: producer-group
+    #         userACL:
+    #           - Read
+    #           - Describe
+    #       - userName: consumer-user
+    #         consumerGroup: consumer-group
+    #         userACL:
+    #           - Read
+    #           - Describe
+    #           - Write
+    #           - Create
+  ## URL of the Kafka bootstrap server. At this moment we do not have multiple Kafka clusters to connect with.
+  ## when the needs to connect multi kafka arise we shall revisit this config
   bootstrapServerUrl: kafka-kafka-bootstrap.kafka.svc:9092
-  topics:
-    enabled: true
-    ## Kafka bootstrap server to connect
-    ## for authorization to work create the topics and users in the Kafka's namespace
-    kafkaClusterName: kafka
-    config:
-      - topic:
-        name: ful-fillment-order ##topic name is prefixed with namespace or something random
-        partitions: 1
-        replicas: 1
-        retentionInMS: '604800000'
-        segmentInBytes: '1073741824'
-        users:
-          - userName: producer-user
-            consumerGroup: producer-group
-            userACL:
-              - Read
-              - Describe
-              - Write
-              - Create
-          - userName: consumer-user
-            consumerGroup: consumer-group
-            userACL:
-              - Read
-              - Describe
-      - topic:
-        name: ful-fillment-order-created-from-rest
-        partitions: 1
-        replicas: 1
-        retentionInMS: '604800000'
-        segmentInBytes: '1073741824'
-        users:
-          - userName: producer-user
-            consumerGroup: producer-group
-            userACL:
-              - Read
-              - Describe
-              - Write
-              - Create
-          - userName: consumer-user
-            consumerGroup: consumer-group
-            userACL:
-              - Read
-              - Describe
-      - topic:
-        name: stock-reserved
-        partitions: 1
-        replicas: 1
-        retentionInMS: '604800000'
-        segmentInBytes: '1073741824'
-        users:
-          - userName: producer-user
-            consumerGroup: producer-group
-            userACL:
-              - Read
-              - Describe
-          - userName: consumer-user
-            consumerGroup: consumer-group
-            userACL:
-              - Read
-              - Describe
-              - Write
-              - Create
+  ## Following is to configure authentication through TLS communication using certs
   clientSecurity:
+    ## The location of the .jks file is fixed across FM. Ensure the file name to be the same
     truststoreFileLocation: /etc/kafka-credentials/kafka-truststore-jks/truststore.jks
     truststorePassword: password
-    keystoreFileLocation: /etc/kafka-credentials/kafka-user-p12/producer-user.p12
+    ## The location of the .p12 file is fixed across FM. Ensure the file name to be the same
+    keystoreFileLocation: /etc/kafka-credentials/kafka-user-p12/user.p12
     keystorePassword: '1234567'
 ####################################################################################################
 ##
@@ -204,7 +219,7 @@ kafka:
 ##
 ####################################################################################################
 ##
-## If the API's of your ITM has to be exposed outside the K8S cluster, it should be done only through
+## If the API's of your FM has to be exposed outside the K8S cluster, it should be done only through
 ## Ingress. Your ingress configuration starts here
 ##
 ####################################################################################################
@@ -223,5 +238,19 @@ ingress:
 ####################################################################################################
 ##
 ## Ingress configuration ends here
+##
+####################################################################################################
+####################################################################################################
+##
+## Your environment variable configuration of the FM starts here
+##
+####################################################################################################
+env: 
+  STOCK_RESERVING_CLIENT_MP_REST_URL: http://tracing-consumer:8080
+  COM_BOUNDARY_CLIENT_MP_REST_URL: http://common-mock-service.common-mock-develop:8080/mockService/api
+
+####################################################################################################
+##
+## Your environment variable configuration of the FM ends here
 ##
 ####################################################################################################
