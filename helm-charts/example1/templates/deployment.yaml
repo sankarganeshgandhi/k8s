@@ -78,17 +78,17 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.uid
-            {{- if .Values.database.secretName }}
+            {{- if .Values.database.connectionConfig.credentialSecretParams }}
             - name: QUARKUS_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: {{ .Values.database.usernameKey }}
+                  name: {{ .Values.database.connectionConfig.credentialSecretParams.secretName }}
+                  key: {{ .Values.database.connectionConfig.credentialSecretParams.usernameKey }}
             - name: QUARKUS_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: {{ .Values.database.passwordKey }}
+                  name: {{ .Values.database.connectionConfig.credentialSecretParams.secretName }}
+                  key: {{ .Values.database.connectionConfig.credentialSecretParams.passwordKey }}
             {{- end }}  
           {{- end }}
             - name: KUBERNETES_NAMESPACE
