@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "service.fullname" . }}
+  name: {{ include "kafka-producer.fullname" . }}
   labels:
-    {{- include "service.labels" . | nindent 4 }}
+    {{- include "kafka-producer.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "service.selectorLabels" . | nindent 6 }}
+      {{- include "kafka-producer.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
@@ -19,13 +19,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "service.selectorLabels" . | nindent 8 }}
+        {{- include "kafka-producer.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "service.serviceAccountName" . }}
+      serviceAccountName: {{ include "kafka-producer.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       volumes:
@@ -54,14 +54,13 @@ spec:
               readOnly: true
           livenessProbe:
             httpGet:
-              path: {{ .Values.service.livenessProbeUrl }}
+              path: /q/health/live
               port: http
           readinessProbe:
             httpGet:
-              path: {{ .Values.service.readinessProbeUrl }}
+              path: /q/health/ready
               port: http
           env:
-          {{- if eq .Values.service.platform  "java-quarkus" }}
             - name: QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_NODE
               valueFrom:
                 fieldRef:
@@ -69,7 +68,9 @@ spec:
             - name: QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_POD
               valueFrom:
                 fieldRef:
-                  fieldPath: metadata.uid   
+                  fieldPath: metadata.uid
+            - name: QUARKUS_LOG_CONSOLE_JSON_PROVIDERS_CONTEXT_CONTAINER
+              value: {{ .Chart.Name }}      
             - name: QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_NODE
               valueFrom:
                 fieldRef:
@@ -78,26 +79,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.uid
-            {{- if .Values.database.connectionConfig.credentialSecretParams }}
-            - name: QUARKUS_DATASOURCE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.connectionConfig.credentialSecretParams.secretName }}
-                  key: {{ .Values.database.connectionConfig.credentialSecretParams.usernameKey }}
-            - name: QUARKUS_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.connectionConfig.credentialSecretParams.secretName }}
-                  key: {{ .Values.database.connectionConfig.credentialSecretParams.passwordKey }}
-            {{- end }}  
-          {{- end }}
+            - name: QUARKUS_LOG_CONSOLE_PROVIDERS_CONTEXT_CONTAINER
+              value: {{ .Chart.Name }}      
             - name: KUBERNETES_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
           envFrom:
           - configMapRef:
-              name: {{ include "service.fullname" . }}-config
+              name: {{ include "kafka-producer.fullname" . }}-config
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

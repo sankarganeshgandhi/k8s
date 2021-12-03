@@ -48,6 +48,7 @@ Selector labels
 {{- define "service.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "service.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: {{ include "service.name" . }}
 {{- end }}
 
 {{/*
@@ -59,4 +60,9 @@ Create the name of the service account to use
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
+{{- end }}
+
+
+{{- define "service.kafka-server.name" -}}
+{{- default (include "service.fullname" .) .Values.kafka.server.name }}
 {{- end }}

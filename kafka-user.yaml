@@ -29,3 +29,79 @@ spec:
         {{- end }}
       {{- end }}
 {{- end }}
+---
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: producer-user
+  labels:
+    strimzi.io/cluster: kafka
+  namespace: kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: group
+          name: producer-group
+          patternType: literal
+        operation: All
+        host: '*'
+      - resource:
+          type: topic
+          name: topic-with-user-acl
+          patternType: literal
+        operation: Read
+        host: '*'
+      - resource:
+          type: topic
+          name: topic-with-user-acl
+          patternType: literal
+        operation: Describe
+        host: '*'
+      - resource:
+          type: topic
+          name: topic-with-user-acl
+          patternType: literal
+        operation: Write
+        host: '*'
+      - resource:
+          type: topic
+          name: topic-with-user-acl
+          patternType: literal
+        operation: Create
+        host: '*'
+---
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: consumer-user
+  labels:
+    strimzi.io/cluster: kafka
+  namespace: kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: group
+          name: consumer-group
+          patternType: literal
+        operation: All
+        host: '*'
+      - resource:
+          type: topic
+          name: topic-with-user-acl
+          patternType: literal
+        operation: Read
+        host: '*'
+      - resource:
+          type: topic
+          name: topic-with-user-acl
+          patternType: literal
+        operation: Describe
+        host: '*'

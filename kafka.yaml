@@ -1,0 +1,39 @@
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: kafka
+  namespace: kafka
+spec:
+  kafka:
+    authorization:
+      type: simple
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+      - name: external
+        port: 9094
+        type: ingress
+        tls: true
+        authentication:
+          type: tls
+        configuration:
+          bootstrap:
+            host: kafka.sankarg.com
+          brokers:
+            - broker: 0
+              host: kafka-0.sankarg.com
+            - broker: 1
+              host: kafka-1.sankarg.com
+    config:
+      offsets.topic.replication.factor: 2
+      transaction.state.log.min.isr: 2
+      transaction.state.log.replication.factor: 2
+    replicas: 2
+  zookeeper:
+    replicas: 2
