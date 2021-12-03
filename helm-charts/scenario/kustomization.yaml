@@ -20,5 +20,6 @@ helmCharts:
   version: 1.1.0
 
 resources:
-  #- https://raw.githubusercontent.com/sankarganeshgandhi/k8s/main/namespace.yaml
+  - https://raw.githubusercontent.com/sankarganeshgandhi/k8s/main/shared-configmap.yaml
+  #- shared-configmap.yaml
   #- default-docker-registry.yaml
