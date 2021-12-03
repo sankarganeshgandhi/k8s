@@ -624,7 +624,7 @@ server:
         tls_key_file  = "/vault/userconfig/injector-tls/tls.key"
       }
       storage "postgresql" {
-        connection_url="postgres://postgres:postgres@vault-postgres-postgresql:5432/vaultdb?sslmode=disable"
+        connection_url="postgres://postgres:postgres@vault-postgres-postgresql.pgsql.svc:5432/vaultdb?sslmode=disable"
         table="vault_kv_store",
         ha_enabled=true,
         ha_table="vault_ha_locks" 

@@ -26,7 +26,6 @@ helmChartInflationGenerator:
   chartRepoUrl: https://external-secrets.github.io/kubernetes-external-secrets/
   extraArgs: 
     - '--include-crds'
-
 #configMapGenerator:
 #- name: vault-initdb-configmap
 #  files:

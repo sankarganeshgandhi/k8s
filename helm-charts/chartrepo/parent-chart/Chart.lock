@@ -1,0 +1,6 @@
+dependencies:
+- name: subchart1
+  repository: file:///home/nlsgand/workspace/local/repo/k8s/helm-charts/parent-chart/subchart1
+  version: 0.1.0
+digest: sha256:2dc67902ad273f1204a9f7a30c521d4a50e12d1c6f70ebafc71fbab02adf955d
+generated: "2021-12-03T11:46:36.7335616+01:00"

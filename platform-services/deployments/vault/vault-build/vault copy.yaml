@@ -1,7 +1,7 @@
-# apiVersion: v1
-# kind: Namespace
-# metadata:
-#   name: vault
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -412,7 +412,7 @@ data:
   extraconfig-from-values.hcl: "disable_mlock = true\nui = true\nlistener \"tcp\"
     {\n  tls_disable = 1\n  address = \"[::]:8200\"\n  cluster_address = \"[::]:8201\"\n
     \ tls_cert_file = \"/vault/userconfig/injector-tls/tls.crt\"\n  tls_key_file  =
-    \"/vault/userconfig/injector-tls/tls.key\"\n}\nstorage \"postgresql\" {\n  connection_url=\"postgres://postgres:postgres@vault-postgres-postgresql:5432/vaultdb?sslmode=disable\"\n
+    \"/vault/userconfig/injector-tls/tls.key\"\n}\nstorage \"postgresql\" {\n  connection_url=\"postgres://postgres:postgres@vault-postgres-postgresql.pgsql.svc:5432/vaultdb?sslmode=disable\"\n
     \ table=\"vault_kv_store\",\n  ha_enabled=true,\n  ha_table=\"vault_ha_locks\"
     \n}\nservice_registration \"kubernetes\" {}\n# Example configuration for using
     auto-unseal, using Google Cloud KMS. The\n# GKMS keys must already exist, and
