@@ -2,7 +2,10 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 subchart1:
-  dessert: customcake
+  dessert: customcake1
+
+subchart2:
+  dessert: customcake2
 
 replicaCount: 1
 

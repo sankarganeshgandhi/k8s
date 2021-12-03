@@ -17,6 +17,7 @@ helmCharts:
 - name: parent-chart
   valuesFile: ./override-values.yaml
   releaseName: platform-release
+  version: 1.1.0
 
 resources:
   #- https://raw.githubusercontent.com/sankarganeshgandhi/k8s/main/namespace.yaml
