@@ -23,6 +23,10 @@ version: 0.1.0
 # It is recommended to use it with quotes.
 appVersion: "0.1.0"
 
-#dependencies:
-#  - name: kafka-consumer
-#    repository: "file://../dependent-service"
+dependencies:
+  - name: subchart1
+    repository: "file:///home/nlsgand/workspace/local/repo/k8s/helm-charts/example2/subchart1"
+    version: "0.2.0"
+  - name: subchart2
+    repository: "file:///home/nlsgand/workspace/local/repo/k8s/helm-charts/example2/subchart2"
+    version: "0.3.0"

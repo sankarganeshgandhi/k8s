@@ -1,0 +1,39 @@
+{{- if .Values.kafka.server.enabled -}}
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: {{ include "service.name" . }}-{{ .Values.kafka.server.name }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  kafka:
+    version: 2.6.0
+    replicas: {{ .Values.kafka.server.config.replicas }}
+    listeners:
+      {{- toYaml .Values.kafka.server.config.listeners | nindent 6 }}
+    config:
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      log.message.format.version: "2.6"
+      zookeper.connection.timeout.ms: 3000
+      zookeper.session.timeout.ms: 3000
+      controlled.shutdown.enable: false
+    storage:
+      type: ephemeral
+  zookeeper:
+    replicas: {{ .Values.kafka.server.config.replicas }}
+    storage:
+      type: ephemeral
+    jvmOptions:
+      javaSystemProperties:
+        - name: zookeeper.ssl.hostnameVerification
+          value: "false"
+        - name: zookeeper.ssl.quorum.hostnameVerification
+          value: "false"
+        - name: zookeeper.electionPortBindRetry
+          value: "100"
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+{{- end }}

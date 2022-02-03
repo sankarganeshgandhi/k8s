@@ -96,7 +96,7 @@ service:
 ##
 ####################################################################################################
 database:
-  service: {}
+  server: {}
     # enabled: true
     # config:
     #   platform: postgresql
