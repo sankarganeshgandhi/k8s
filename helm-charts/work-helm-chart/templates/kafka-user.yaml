@@ -1,0 +1,45 @@
+{{- if .Values.kafka.user -}}
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: {{ .Values.kafka.user.name }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.user.kafkaClusterName }}
+    {{- include "reference-example-service.labels" . | nindent 4 }}
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: group
+          name: my-group
+          patternType: literal
+        operation: Read
+        host: '*'
+      - resource:
+          type: topic
+          name: Topic1
+          patternType: literal
+        operation: Read
+        host: '*'
+      - resource:
+          type: topic
+          name: Topic1
+          patternType: literal
+        operation: Describe
+        host: '*'
+      - resource:
+          type: topic
+          name: Topic1
+          patternType: literal
+        operation: Write
+        host: '*'
+      - resource:
+          type: topic
+          name: Topic1
+          patternType: literal
+        operation: Create
+        host: '*'
+{{- end }}

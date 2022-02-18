@@ -8,7 +8,7 @@ openssl req \
    -sha256 \
    -days 1825 \
    -out injector-ca.crt \
-   -subj "/C=eu/ST=nl/L=veghel/O=vanderlande/CN=vault-agent-injector-svc"
+   -subj "/C=eu/ST=nl/L=veghel/O=mycompany/CN=vault-agent-injector-svc"
 
 openssl genrsa -out tls.key 2048
 
@@ -16,7 +16,7 @@ openssl req \
    -new \
    -key tls.key \
    -out tls.csr \
-   -subj "/C=eu/ST=nl/L=veghel/O=vanderlande/CN=vault-agent-injector-svc"
+   -subj "/C=eu/ST=nl/L=veghel/O=mycompany/CN=vault-agent-injector-svc"
 
 cat <<EOF >csr.conf
 authorityKeyIdentifier=keyid,issuer

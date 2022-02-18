@@ -1,0 +1,143 @@
+# Default values for department-service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+test:
+  enabled: false
+
+image:
+  repository: "mycompany/reference-example-service"
+  pullPolicy: "Always"
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+ingress: {}
+  # annotations:
+  #   kubernetes.io/ingress.class: nginx
+  #   nginx.ingress.kubernetes.io/rewrite-target: /
+  # hosts:
+  #   - host: mydomain.clustername.k8s.mycompany.com
+  #     paths:
+  #       - path: /ref-ex-service
+  #         pathType: Prefix
+  #         backend:
+  #           service:
+  #             port:
+  #               number: 8080
+  # tls:
+  #   - hosts:
+  #       - mydomain.clustername.k8s.mycompany.com
+  #     secretName: ingress-cert
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+
+####==========================================================###
+## Database configurations go here
+database:
+  platform: postgresql
+  ## OPTIONAL field to create a namespace scoped database instance for the service. If this is enabled, it is
+  ## understood that the service will use a shared/common database
+  server: {}
+    #databaseSchemaName: ""
+  connectionConfig:
+    ## In general we have to use the credentials from the secrets created in the namespace. This shall be followed in all the clusters
+    credentials:
+      secretParams:
+        secretName: mycompany-wplat-database-credentials
+        ## name of the secret key that contains the username of the database
+        usernameKey: username
+        ## name of the secret key that contains the password of the username
+        passwordKey: password
+      ## OPTIONAL: in production we will not use the plain text form of credentials. This is available for the development purpose
+      plainTextParams: {}
+        # username: someusername
+        # password: somepassword    
+    connectionUrl: jdbc:postgresql://wplat-psqldb:5432/wplat1-3
+
+kafka:
+  server: {}
+    # name: reference-example-service-kafka
+  connectionConfig:
+    bootstrapServerUrl: reference-example-service-kafka-bootstrap:9092
+    clientSecurity:
+      ## The location of the .jks file is fixed across FM. Ensure the file name to be the same
+      truststore:
+        fileLocation: /etc/kafka-credentials/kafka-truststore-jks/truststore.jks
+        secret:
+          secretName: mycompany-wplat-kafka-truststore-secret
+          truststorePasswordKey: password
+        # truststorePassword: password
+      ## The location of the .p12 file is fixed across FM. Ensure the file name to be the same
+      keystore:
+        keystoreFileLocation: /etc/kafka-credentials/kafka-user-p12/user.p12
+        secret:
+          secretName: mycompany-wplat-kafka-keystore-secret
+          keystorePasswordKey: password
+        # keystorePassword: '1234567'
+  user: {}
+    # name: scbuser
+    # kafkaClusterName: reference-example-service-kafka
+  topics: {}
+    # prefixName: ref-eg1
+    # kafkaClusterName: reference-example-service-kafka
+
+tracing:
+  collectorUrl: "http://jaeger-collector.monitoring-system:14250/api/traces"
+
+env:
+  dasdasdada: dasdfasfasaf

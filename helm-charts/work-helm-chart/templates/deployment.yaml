@@ -1,0 +1,149 @@
+{{- if .Values.database -}}
+  {{- $databaseDriverClassname := "undefined" -}}
+  {{- $databasePlatformDialect := "undefined" -}}
+  {{ if eq .Values.database.platform  "postgresql" }}
+    {{- $databaseDriverClassname = "org.prostgresql.Driver" }}
+    {{- $databasePlatformDialect = "org.hibernate.dialect.PostgreSQLDialect" -}}
+  {{ else if eq .Values.database.platform  "oracle" }}
+    {{- $databaseDriverClassname = "org.Oracle.Driver" }}
+    {{- $databasePlatformDialect = "org.hibernate.dialect.OracleSQLDialect" -}}
+  {{ end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "reference-example-service.fullname" . }}
+  labels:
+    {{- include "reference-example-service.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "reference-example-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reference-example-service.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "reference-example-service.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - mountPath: "/etc/kafka-credentials/kafka-truststore-jks"
+              name: kafka-truststore-jks
+              readOnly: true
+            - mountPath: "/etc/kafka-credentials/kafka-user-p12"
+              name: kafka-user-p12
+              readOnly: true
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+          env:
+            ## START Database config - we are loading database configs from values.yaml as environment variables
+            - name: SPRING_DATASOURCE_URL
+              value: {{ .Values.database.connectionConfig.connectionUrl }}
+            - name: SPRING_DATASOURCE_DRIVERCLASSNAME
+              value: {{ $databaseDriverClassname }}
+            - name: SPRING_JPA_DATABASE_PLATFORM
+              value: {{ $databasePlatformDialect }}
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.connectionConfig.credentials.secretParams.secretName }}
+                  key: {{ .Values.database.connectionConfig.credentials.secretParams.usernameKey }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.connectionConfig.credentials.secretParams.secretName }}
+                  key: {{ .Values.database.connectionConfig.credentials.secretParams.passwordKey }}
+            ## END Database config
+            ## START Kafka config - we are loading kafka configs from values.yaml as environment variables
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.connectionConfig.bootstrapServerUrl }}
+            - name: SERVER_SSL_KEY_STORE
+              value: {{ .Values.kafka.connectionConfig.clientSecurity.keystore.fileLocation }}
+            - name: SERVER_SSL_KEY-STORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.connectionConfig.clientSecurity.keystore.secretName }}
+                  key: {{ .Values.kafka.connectionConfig.clientSecurity.keystore.keystorePasswordKey }}
+              #value: {{ .Values.kafka.connectionConfig.clientSecurity.keystore.keystorePasswordKey }}
+            - name: SERVER_SSL_TRUST_STORE
+              value: {{ .Values.kafka.connectionConfig.clientSecurity.truststore.fileLocation }}
+            - name: SERVER_SSL_TRUST-STORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.connectionConfig.clientSecurity.truststore.secretName }}
+                  key: {{ .Values.kafka.connectionConfig.clientSecurity.truststore.truststorePasswordKey }}
+              #value: {{ .Values.kafka.connectionConfig.clientSecurity.truststore.truststorePasswordKey }}
+            ## END Kafka config
+            ## START Tracing config
+            - name: OTEL_TRACES_EXPORTER
+              value: "jaeger"
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              value: {{ .Values.tracing.collectorUrl }}
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Chart.Name }}
+            - name: OTEL_JAVAAGENT_EXCLUDECLASSES
+              value: "org.apache.kafka.clients.consumer.*"
+            - name: OTEL_INSTRUMENTATION_HIBERNATE_ENABLED
+              value: false
+            - name: OTEL_INSTRUMENTATION_JDBC_ENABLED
+              value: false
+            - name: OTEL_INSTRUMENTATION_SPRINGDATA_ENABLED
+              value: false
+            ## END Tracing config
+          {{ if .Values.env }}
+          envFrom:
+          - configMapRef:
+              name: {{ include "reference-example-service.fullname" . }}-config
+          {{ end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      ## START Kafka client credentials
+        - name: kafka-truststore-jks
+          secret:
+            secretName: kafka-truststore-jks
+        - name: kafka-user-p12
+          secret:
+            secretName: kafka-user-p12
+      ## END Kafka client credentials
+{{- end }}

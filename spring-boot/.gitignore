@@ -1,0 +1,75 @@
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+
+.mvn/local-settings.xml
+.mvn/maven.config
+
+# Kustomize
+kustomize-values.yaml
+
+# IntelliJ
+.idea/*
+*.ipr
+**/*.iml
+*.iws
+# include checkstyle plugin config
+!.idea/checkstyle-idea.xml
+
+# NetBeans
+nb-configuration.xml
+
+# Visual Studio Code
+.vscode
+.factorypath
+
+# OSX
+.DS_Store
+
+# Vim
+*.swp
+*.swo
+
+# patch
+*.orig
+*.rej
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+
+*/src/main/helm/*/*.tgz
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+*.crt
+*.password
+*.p12
+
