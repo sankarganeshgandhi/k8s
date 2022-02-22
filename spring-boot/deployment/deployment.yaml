@@ -26,7 +26,7 @@ kind: Service
 metadata:
   labels:
     app: demo
-  name: demo
+  name: demo-master
 spec:
   ports:
   - name: 8080-8080
@@ -38,3 +38,22 @@ spec:
   type: ClusterIP
 status:
   loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: demo
+  name: demo-redundant
+spec:
+  ports:
+  - name: 8080-8080
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: demo
+  type: ClusterIP
+status:
+  loadBalancer: {}
+

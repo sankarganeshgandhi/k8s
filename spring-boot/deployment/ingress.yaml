@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: demo-ingress
+  name: demo-master-ingress
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/rewrite-target: /actuator/health/$1
@@ -14,13 +14,13 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: demo
+            name: demo-master
             port: 
               number: 8080
       - path: /sm
         pathType: Prefix
         backend:
           service:
-            name: demo
+            name: demo-master
             port: 
               number: 8080
