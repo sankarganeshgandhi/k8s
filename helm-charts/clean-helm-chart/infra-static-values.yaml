@@ -7,6 +7,7 @@
 ## kustomize.
 
 ## - THIS SECTION IS FOR CONFIGURATIONS THAT DO NOT CHANGE IN MOST OF THE CASES                                    - ##
+imagePullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
@@ -59,97 +60,3 @@ tolerations: []
 affinity: {}
 
 ## - ------------------------------------------------------------------------------------------------------------- - ##
-
-## - THIS SECTION IS FOR APPLICATION CONFIGURATIONS THAT DO NOT CHANGE IN MOST OF THE CASES                        - ##
-
-## - ------------------------------------------------------------------------------------------------------------- - ##
-
-## - THIS SECTION IS FOR INFRASTRUCUTRE CONFIGURATIONS THAT DO NOT CHANGE IN MOST OF THE CASES                     - ##
-imagePullSecrets: []
-imagePullPolicy: IfNotPresent
-
-## - ------------------------------------------------------------------------------------------------------------- - ##
-
-global:
-  platformVersion: 1.0
-
-service:
-  image:
-    repository: nginx
-    ## Overrides the image tag whose default is the chart appVersion.
-    tag: ""
-  type: ClusterIP
-  port: 80
-  replicaCount: 1
-
-ingress:
-  enabled: false
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          serviceName: chart-example.local
-          servicePort: 80
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
-
-kafka:
-  ## Enable this if you have to spin off a Kafka server instance
-  server: {}
-    # name: kafka
-    ## By default the replicas has to be 3 or more in the odd number incremental
-    # replicas: 1
-    ## By default the topicReplicationFactor has to be 3 or more in the odd number incremental
-    # topicReplicationFactor: 1
-  ## This section is for KafkaTopic and KafkaUser creation  
-  kafkaTopic: {}
-    ## Kafka cluster name where the Topic has to be created
-    # clusterName: kafka
-    ## for authorization to work create the topics and users in the Kafka's namespace
-    # userName: kafkaUser1
-  connectionConfig:
-    ## URL of the Kafka bootstrap server. At this moment we do not have multiple Kafka clusters to connect with.
-    ## when the needs to connect multi kafka arise we shall revisit this config
-    connectionUrl: kafka-kafka-bootstrap.kafka.svc:9092
-    ## Following is to configure authentication through TLS communication using certs
-####==========================================================###
-## Database configurations go here
-database:
-  ## platform denotes the database platform on which the ITM will persist the data. It can be either oracle, ostgresql
-  platform: postgresql
-  ## OPTIONAL field to create a namespace scoped database instance within the namespace of the service. If this is not enabled, it is
-  ## understood that the service will use/connect a database that was deployed somewhere else
-  server: {}
-    # databaseSchemaName: ""
-  connectionConfig:
-    connectionUrl: jdbc:postgresql://wplat-psqldb:5432/wplat1-3
-    ## In general we have to use the credentials from the secrets created in the namespace. This shall be followed in all the clusters
-    credentials:
-      secrets:
-        secretName: mycompany-wplat-database-credentials
-        ## name of the secret key that contains the username of the database
-        userNameKey: username
-        ## name of the secret key that contains the password of the username
-        passwordKey: password
-  migration: {}
-    # image:
-    #   repository: nginx
-    #   ## Overrides the image tag whose default is the chart appVersion.
-    #   tag: ""
-    # connectionConfig:
-    #   connectionUrl: jdbc:postgresql://wplat-psqldb:5432/wplat1-3
-    #   ## In general we have to use the credentials from the secrets created in the namespace. This shall be followed in all the clusters
-    #   credentials:
-    #     secrets:
-    #       secretName: mycompany-wplat-database-credentials
-    #       ## name of the secret key that contains the username of the database
-    #       userNameKey: username
-    #       ## name of the secret key that contains the password of the username
-    #       passwordKey: password
