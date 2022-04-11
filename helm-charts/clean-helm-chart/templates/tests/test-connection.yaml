@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "applService.fullname" . }}-test-connection"
+  labels:
+    {{- include "applService.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "applService.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never

@@ -1,0 +1,57 @@
+{{- if .Values.kafka.server -}}
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: {{ include "applService.name" . }}-{{ .Values.kafka.server.name }}
+  name: 
+spec:
+  kafka:
+    version: 2.7.0
+    replicas: {{ .Values.kafka.server.replicas }}
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    readinessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    livenessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    config:
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      log.message.format.version: "2.6"
+      zookeper.connection.timeout.ms: 3000
+      zookeper.session.timeout.ms: 3000
+      controlled.shutdown.enable: false
+    storage:
+      type: ephemeral
+  zookeeper:
+    replicas: {{ .Values.kafka.server.replicas }}
+    readinessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    livenessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    storage:
+      type: ephemeral
+    jvmOptions:
+      javaSystemProperties:
+        - name: zookeeper.ssl.hostnameVerification
+          value: "false"
+        - name: zookeeper.ssl.quorum.hostnameVerification
+          value: "false"
+        - name: zookeeper.electionPortBindRetry
+          value: "100"
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+{{- end }}

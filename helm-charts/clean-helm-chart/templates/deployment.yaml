@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "applService.fullname" . }}
+  labels:
+    {{- include "applService.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "applService.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "applService.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "applService.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: application-config
+              mountPath: /etc/config
+              readOnly: true
+            ## START Kafka client credentials
+            ## the truststore file is expected to be created from an initContainer under the location
+            ## /etc/kafka-security/kafka-truststore - kafka-truststore is the filename
+            ## This is to mount the keystore for the kafka client
+            {{- if .Values.kafka.kafkaTopic -}}
+            - mountPath: "/etc/kafka-security/"
+              name: kafka-keystore
+              readOnly: true
+            {{- end }}
+            ## END Kafka client credentials
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: ADDITIONAL_CONFOG_LOCATION
+              value: /etc/config/
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.connectionConfig.connectionUrl }}
+            - name: QUARKUS_DATASOURCE_JDBC_URL
+              value: {{ .Values.database.connectionConfig.connectionUrl }}
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.connectionConfig.credentials.secrets.secretName }}
+                  key: {{ .Values.database.connectionConfig.credentials.secrets.userNameKey }}
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.connectionConfig.credentials.secrets.secretName }}
+                  key: {{ .Values.database.connectionConfig.credentials.secrets.passwordKey }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: application-config
+          configMap:
+            name: {{ template "applService.fullname" . }}
+        ## START Kafka client credentials
+        {{- if .Values.kafka.kafkaTopic -}}
+        ## Keystore secret for kafka
+        - name: kafka-keystore
+          secret:
+            secretName: {{ .Values.kafka.kafkaTopic.userName }}-p12
+        {{- end }}
+        ## END Kafka client credentials

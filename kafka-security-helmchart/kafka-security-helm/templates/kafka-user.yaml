@@ -1,0 +1,30 @@
+## This is the manifest to create the KafkaUser
+## Only a producer can have All (Read, Write, Delete, Create and Describe) permission.
+## In case of consumer the a user is allowed to have Read and Describe permission.
+
+{{- if .Values.kafka.kafkaTopic -}}
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: {{ .Values.kafka.kafkaTopic.userName }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.kafkaTopic.clusterName }}
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: kafka-topic1
+          patternType: literal
+        operation: All
+        host: '*'
+      - resource:
+          type: topic
+          name: kafka-topic2
+          patternType: literal
+        operation: All
+        host: '*'
+{{- end }}

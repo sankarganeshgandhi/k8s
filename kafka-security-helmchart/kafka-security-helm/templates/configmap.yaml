@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "applService.fullname" . }}-config
+  labels:
+    {{- include "applService.labels" . | nindent 4 }}
+data:
+  dessert: {{ .Values.dessert }}
+  {{- range $key, $val := .Values.env }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end}}

@@ -1,0 +1,30 @@
+## This is the manifest to create the KafkaTopic
+{{- if .Values.kafka.kafkaTopic -}}
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: kafka-topic1
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.kafkaTopic.clusterName }}
+spec:
+  partitions: 1
+  ## Minimum 3 replicas has to be there for each of the topics. It can be incremented with odd number
+  replicas: 3
+  config:
+    retention.ms: 7200000
+    segment.bytes: 1073741824
+---
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: kafka-topic2
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.kafkaTopic.clusterName }}
+spec:
+  partitions: 1
+  ## Minimum 3 replicas has to be there for each of the topics. It can be incremented with odd number
+  replicas: 3
+  config:
+    retention.ms: 7200000
+    segment.bytes: 1073741824
+{{- end }}
