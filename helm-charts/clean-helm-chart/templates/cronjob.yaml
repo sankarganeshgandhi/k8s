@@ -1,0 +1,30 @@
+{{- if .Values.cronJob -}}
+{{- $fullName := include "applService.fullname" . -}}
+{{- with .Values.imagePullSecrets }}
+{{- $imagePullSecrets := include .Values.imagePullSecrets | toYaml . | nindent 10 -}}
+{{- end}}
+{{- $appVersion := .Chart.AppVersion -}}
+{{- $imagePullPolicy := .Values.imagePullPolicy -}}
+{{- range .Values.cronJob.jobs }}
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: $fullName-{{ .jobName }}-job
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          imagePullSecrets: $imagePullSecrets
+          volumes:
+          containers:
+            - name: {{ .jobName }}
+              image: {{ .image.repository }}:{{ .image.tag | default $appVersion }}
+              imagePullPolicy: $imagePullPolicy
+              command: {{ .shellCommand }}
+              args: [ {{- tpl .args . }} ]
+          restartPolicy: {{ .restartPolicy }}
+{{- end }}
+{{- end }}

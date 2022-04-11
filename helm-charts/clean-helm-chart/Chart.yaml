@@ -1,3 +1,5 @@
+## This chart is aimed at providing a clean way of defining the templates and values so that it will standardize the templates for development
+## and the configuration values for the deployment team. 
 apiVersion: v2
 name: clean-helm
 description: A Helm chart for Kubernetes

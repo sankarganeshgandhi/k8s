@@ -27,12 +27,33 @@ spec:
       serviceAccountName: {{ include "applService.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.database.migration -}}
+      initContainers:
+        - name: {{ .Chart.Name }}-db-migrations
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.database.migration.image.repository }}:{{ .Values.database.migration.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.database.migration.image.pullPolicy | default .Values.imagePullPolicy }}
+          env:
+            - name: USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.migration.connectionConfig.credentials.secrets.secretName }}
+                  key: {{ .Values.database.migration.connectionConfig.credentials.secrets.usernameKey }}
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.migration.connectionConfig.credentials.secrets.secretName }}
+                  key: {{ .Values.database.migration.connectionConfig.credentials.secrets.passwordKey }}
+            - name: URL
+              value: {{ .Values.database.migration.connectionConfig.connectionUrl }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.service.image.repository }}:{{ .Values.service.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.service.image.pullPolicy | default .Values.imagePullPolicy }}
           ports:
             - containerPort: 8080
               name: http
