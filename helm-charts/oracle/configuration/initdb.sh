@@ -1,0 +1,1 @@
+sqlplus $ADMIN_USERNAME/$ADMIN_PASSWORD @/opt/oracle/init_itm_db.sql $ITM_USERNAME $ITM_USER_PASSWORD

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: initdb-configmap
+data:
+{{ (.Files.Glob "configuration/initdb.sh").AsConfig | indent 2 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: setup-itm-user-configmap
+data:
+{{ (.Files.Glob "configuration/setup_itm_user.sql").AsConfig | indent 2 }}

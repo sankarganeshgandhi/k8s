@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  {{ include "service.name" . }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "service.selectorLabels" . | nindent 6 }}
+  {{- if not .Values.autoscaling }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "service.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        - name: orasetup
+          persistentVolumeClaim:
+            claimName: {{ include "service.name" . }}-setup
+        - name: orastartup
+          persistentVolumeClaim:
+            claimName: {{ include "service.name" . }}-startup
+        - name: oradata
+          persistentVolumeClaim:
+            claimName: {{ include "service.name" . }}-data
+        - name: initdb
+          configMap:
+            name: initdb-configmap
+            defaultMode: 0700
+        - name: setup-itm-user
+          configMap:
+            name: setup-itm-user-configmap
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.service.serviceAccountName }}
+      serviceAccountName: {{ include "service.serviceAccountName" . }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          command: ["/bin/sh","-c"]
+          args:
+            - /opt/oracle/runOracle.sh;
+          imagePullPolicy:  {{ .Values.image.pullPolicy }}
+          resources:
+            limits:
+            {{- toYaml .Values.resources.limits | nindent 14 }}
+            requests:
+            {{- toYaml .Values.resources.requests | nindent 14 }}
+          ports:
+            {{- range .Values.service.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .port }}
+            {{- end }}
+          volumeMounts:
+            - name: dshm
+              mountPath: "/dev/shm"
+            - name: orasetup
+              mountPath: "/opt/oracle/scripts/setup"
+            - name: orastartup
+              mountPath: "/opt/oracle/scripts/startup"
+            - name: oradata
+              mountPath: "/opt/oracle/oradata"
+            - name: initdb
+              mountPath: "/opt/oracle/setup"
+            - name: setup-itm-user
+              mountPath: "/opt/oracle/setup"
+          env:
+            - name: ORACLE_SID
+              value: ORCLCDB
+            - name: ORACLE_PDB
+              value: orcl
+            - name: ORACLE_CHARACTERSET
+              value: AL32UTF8
+            - name: ORACLE_PWD
+              value: password123
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "service.name" . }}-data
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.resources.diskStorage.data }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "service.name" . }}-startup
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.resources.diskStorage.startup }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "service.name" . }}-setup
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.resources.diskStorage.setup }}
